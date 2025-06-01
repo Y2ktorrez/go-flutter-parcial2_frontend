@@ -222,49 +222,11 @@ export const getDefaultProperties = (type: ComponentType) => {
         showImage: true,
         imageHeight: 120,
       };
-    case "list":
-      return {
-        direction: "vertical",
-        scrollable: true,
-        itemCount: 5,
-        itemHeight: 50,
-        data: JSON.stringify([
-          { title: "Item 1", subtitle: "Description 1", icon: "star" },
-          { title: "Item 2", subtitle: "Description 2", icon: "favorite" },
-          { title: "Item 3", subtitle: "Description 3", icon: "home" },
-          { title: "Item 4", subtitle: "Description 4", icon: "settings" },
-          { title: "Item 5", subtitle: "Description 5", icon: "person" },
-        ]),
-      };
     case "icon":
       return {
         name: "star",
         color: "#000000",
         size: 24,
-      };
-    case "container":
-      return {
-        color: "#E0E0E0",
-        padding: 16,
-        margin: 8,
-        borderRadius: 0,
-      };
-    case "row":
-      return {
-        mainAxisAlignment: "start",
-        crossAxisAlignment: "center",
-        padding: 8,
-      };
-    case "column":
-      return {
-        mainAxisAlignment: "start",
-        crossAxisAlignment: "center",
-        padding: 8,
-      };
-    case "stack":
-      return {
-        alignment: "center",
-        padding: 8,
       };
     case "switch":
       return {

@@ -686,27 +686,31 @@ export default function DesignerWorkspace() {
         {/* <IaImage /> */}
 
         <div className="flex flex-1 overflow-hidden">
-          <ComponentsSidebar onAddElement={addElement} />
-          <DesignCanvas
-            elements={currentScreen ? currentScreen.elements : []}
-            selectedElement={selectedElement}
-            onSelectElement={setSelectedElement}
-            onUpdateElement={updateElement}
-            onRemoveElement={removeElement}
-            isDarkMode={false}
-            onAddElement={addElement}
-            deviceType={canvasDevice}
-            onDeviceChange={setCanvasDevice}
-            currentScreen={currentScreen}
-            onNavigate={navigateToScreen}
-          />
+          <div className="h-full overflow-y-auto">
+            <ComponentsSidebar onAddElement={addElement} />
+          </div>
+            <DesignCanvas
+              elements={currentScreen ? currentScreen.elements : []}
+              selectedElement={selectedElement}
+              onSelectElement={setSelectedElement}
+              onUpdateElement={updateElement}
+              onRemoveElement={removeElement}
+              isDarkMode={false}
+              onAddElement={addElement}
+              deviceType={canvasDevice}
+              onDeviceChange={setCanvasDevice}
+              currentScreen={currentScreen}
+              onNavigate={navigateToScreen}
+            />
 
-          <PropertiesPanel
-            selectedElement={selectedElement}
-            onUpdateElement={updateElement}
-            onRemoveElement={removeElement}
-            screens={screens}
-          />
+          <div className="h-full overflow-y-auto">
+            <PropertiesPanel
+              selectedElement={selectedElement}
+              onUpdateElement={updateElement}
+              onRemoveElement={removeElement}
+              screens={screens}
+            />
+          </div>
         </div>
       </div>
     </DndProvider>

@@ -42,35 +42,12 @@ export function getPropertiesConfig(type: ComponentType): PropertyConfig[] {
         { name: "color", label: "Background Color", type: "color" },
         { name: "padding", label: "Padding", type: "number" },
       ];
-    case "list":
-      return [
-        {
-          name: "direction",
-          label: "Direction",
-          type: "select",
-          options: [
-            { label: "Vertical", value: "vertical" },
-            { label: "Horizontal", value: "horizontal" },
-          ],
-        },
-        { name: "scrollable", label: "Scrollable", type: "boolean" },
-        { name: "itemHeight", label: "Item Height", type: "number" },
-        { name: "data", label: "List Data", type: "json" },
-      ];
     case "icon":
       return [
         { name: "name", label: "Icon Name", type: "text" },
         { name: "color", label: "Color", type: "color" },
         { name: "size", label: "Size", type: "number" },
       ];
-    case "container":
-      return [
-        { name: "color", label: "Color", type: "color" },
-        { name: "padding", label: "Padding", type: "number" },
-        { name: "margin", label: "Margin", type: "number" },
-        { name: "borderRadius", label: "Border Radius", type: "number" },
-      ];
-    case "row":
       return [
         {
           name: "mainAxisAlignment",
@@ -94,54 +71,6 @@ export function getPropertiesConfig(type: ComponentType): PropertyConfig[] {
             { label: "Center", value: "center" },
             { label: "End", value: "end" },
             { label: "Stretch", value: "stretch" },
-          ],
-        },
-        { name: "padding", label: "Padding", type: "number" },
-      ];
-    case "column":
-      return [
-        {
-          name: "mainAxisAlignment",
-          label: "Main Axis Alignment",
-          type: "select",
-          options: [
-            { label: "Start", value: "start" },
-            { label: "Center", value: "center" },
-            { label: "End", value: "end" },
-            { label: "Space Between", value: "spaceBetween" },
-            { label: "Space Around", value: "spaceAround" },
-            { label: "Space Evenly", value: "spaceEvenly" },
-          ],
-        },
-        {
-          name: "crossAxisAlignment",
-          label: "Cross Axis Alignment",
-          type: "select",
-          options: [
-            { label: "Start", value: "start" },
-            { label: "Center", value: "center" },
-            { label: "End", value: "end" },
-            { label: "Stretch", value: "stretch" },
-          ],
-        },
-        { name: "padding", label: "Padding", type: "number" },
-      ];
-    case "stack":
-      return [
-        {
-          name: "alignment",
-          label: "Alignment",
-          type: "select",
-          options: [
-            { label: "Top Left", value: "topLeft" },
-            { label: "Top Center", value: "topCenter" },
-            { label: "Top Right", value: "topRight" },
-            { label: "Center Left", value: "centerLeft" },
-            { label: "Center", value: "center" },
-            { label: "Center Right", value: "centerRight" },
-            { label: "Bottom Left", value: "bottomLeft" },
-            { label: "Bottom Center", value: "bottomCenter" },
-            { label: "Bottom Right", value: "bottomRight" },
           ],
         },
         { name: "padding", label: "Padding", type: "number" },

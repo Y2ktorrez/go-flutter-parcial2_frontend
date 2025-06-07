@@ -31,6 +31,7 @@ export interface DesignElement {
   height: number;
   properties: Record<string, any>;
   children: DesignElement[];
+  position?: { x: number; y: number };
 }
 
 export interface PropertyConfig {

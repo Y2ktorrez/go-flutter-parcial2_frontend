@@ -18,6 +18,7 @@ interface DesignCanvasProps {
   onSelectElement: (element: DesignElement | null) => void;
   onUpdateElement: (id: string, updates: Partial<DesignElement>) => void;
   onRemoveElement: (id: string) => void;
+  onElementMove?: (componentId: string, position: { x: number; y: number }) => void;
   isDarkMode: boolean;
   onAddElement: (type: ComponentType, x: number, y: number) => void;
   deviceType: DeviceType;
@@ -143,7 +144,7 @@ export default function DesignCanvas(props: DesignCanvasProps) {
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  const handleDrop = (item: { type: string }, monitor: any) => {
+  const handleDrop = (item: { type: ComponentType }, monitor: any) => {
     const offset = monitor.getClientOffset();
     if (offset && onAddElement) {
       const phoneContainer = document
@@ -168,14 +169,13 @@ export default function DesignCanvas(props: DesignCanvasProps) {
           y >= 0 &&
           y <= scaledHeight
         ) {
-          onAddElement(item.type as any, x, y);
+          onAddElement(item.type, x, y);
         }
       }
     }
     return undefined;
   };
-
-  const [{ isOver }, drop] = useDrop(() => ({
+  const [{ isOver }, drop] = useDrop<{ type: ComponentType }, void, { isOver: boolean }>(() => ({
     accept: "component",
     drop: handleDrop,
     collect: (monitor) => ({
@@ -207,6 +207,13 @@ export default function DesignCanvas(props: DesignCanvasProps) {
       onNavigate(element.properties.navigateTo);
     }
   };
+  const handleElementMove = useCallback((componentId: string, position: { x: number, y: number }) => {
+    // Update the element locally
+    onUpdateElement(componentId, { position });
+    
+    // Notify other users about the movement
+    props.onElementMove?.(componentId, position);
+  }, [onUpdateElement, props.onElementMove]);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-black p-4">
@@ -369,14 +376,14 @@ export default function DesignCanvas(props: DesignCanvasProps) {
                         ? "cursor-pointer"
                         : ""
                     }
-                  >
-                    <CanvasElement
+                  >                    <CanvasElement
                       key={element.id}
                       element={element}
                       isSelected={selectedElement?.id === element.id}
                       onSelect={() => onSelectElement(element)}
                       onUpdate={(updates) => onUpdateElement(element.id, updates)}
                       onRemove={() => onRemoveElement(element.id)}
+                      onMove={(position) => handleElementMove(element.id, position)}
                       isDarkMode={isDarkMode}
                     />
                   </div>

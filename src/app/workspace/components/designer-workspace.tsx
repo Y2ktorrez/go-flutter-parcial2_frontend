@@ -1,24 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import ComponentsSidebar from "./components-sidebar";
 import DesignCanvas from "./design-canvas";
 import PropertiesPanel from "./properties-panel";
 import ScreensManager from "./screens-manager";
-import { RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { RotateCcw, RotateCw, Trash2, Users } from "lucide-react";
 import { DownloadZipButton } from "./export-flutter";
 import IaExample from "./ia/ia-example";
 import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
+import { useRealtime } from "@/hooks/use-realtime";
+import { RemoteCursor } from "@/components/remote-cursor";
 import AuthDropdown from "./auth-dropdown";
+import { Badge } from "@/components/ui/badge";
 
 export default function DesignerWorkspace() {
   const {
     screens,
     currentScreenId,
     setCurrentScreenId,
-    currentScreenIdRef,
     selectedElement,
     setSelectedElement,
     history,
@@ -30,6 +32,7 @@ export default function DesignerWorkspace() {
     addElement,
     updateElement,
     removeElement,
+    updateElementPosition,
     undo,
     redo,
     generateCode,
@@ -42,63 +45,61 @@ export default function DesignerWorkspace() {
     currentScreen,
   } = useDesignerWorkspace();
 
-  // Actualizar la ref cuando cambia currentScreenId
-  useEffect(() => {
-    currentScreenIdRef.current = currentScreenId;
-    console.log("🔄 Pantalla actual cambiada a:", currentScreenId);
-  }, [currentScreenId]);
+  const {
+    isConnected,
+    cursors,
+    connectedUsers,
+    updateCursorPosition,
+    sendComponentMovement,
+    userColor
+  } = useRealtime();
 
-  // Reset selected element when changing screens
+  // Handle mouse movement for cursor sharing
   useEffect(() => {
-    setSelectedElement(null);
-  }, [currentScreenId]);
+    const handleMouseMove = (e: MouseEvent) => {
+      const bounds = document.getElementById("design-canvas")?.getBoundingClientRect();
+      if (!bounds) return;
 
-  // Asegurar que el historial existe para la pantalla actual
-  useEffect(() => {
-    const screenId = currentScreenId;
+      const x = e.clientX - bounds.left;
+      const y = e.clientY - bounds.top;
+      updateCursorPosition(x, y);
+    };
 
-    if (!history[screenId]) {
-      console.log("📝 Inicializando historial para pantalla:", screenId);
-      setHistory((prevHistory) => ({
-        ...prevHistory,
-        [screenId]: [[]],
-      }));
+    const canvas = document.getElementById("design-canvas");
+    if (canvas) {
+      canvas.addEventListener("mousemove", handleMouseMove);
     }
 
-    if (historyIndex[screenId] === undefined) {
-      console.log(
-        "📝 Inicializando índice de historial para pantalla:",
-        screenId
-      );
-      setHistoryIndex((prevIndices) => ({
-        ...prevIndices,
-        [screenId]: 0,
-      }));
-    }
+    return () => {
+      canvas?.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [updateCursorPosition]);
 
-    // Mostrar información de depuración
-    const currentScreen = screens.find((s) => s.id === screenId);
-    if (currentScreen) {
-      console.log(
-        "📊 Pantalla actual:",
-        screenId,
-        "Nombre:",
-        currentScreen.name,
-        "Elementos:",
-        currentScreen.elements.length
-      );
-    }
-  }, [currentScreenId, history, historyIndex, screens]);
-
-  // Mostrar información de depuración cuando cambian las pantallas
+  // Handle remote component movements
   useEffect(() => {
-    console.log("📊 ESTADO DE PANTALLAS:");
-    screens.forEach((screen) => {
-      console.log(
-        `- ${screen.id} (${screen.name}): ${screen.elements.length} elementos`
-      );
-    });
-  }, [screens]);
+    const handleRemoteMove = (e: CustomEvent<{
+      componentId: string;
+      position: { x: number; y: number };
+      userId: string;
+    }>) => {
+      const { componentId, position } = e.detail;
+      updateElementPosition(componentId, position);
+    };
+
+    window.addEventListener("remote-component-move" as any, handleRemoteMove);
+    return () => {
+      window.removeEventListener("remote-component-move" as any, handleRemoteMove);
+    };
+  }, [updateElementPosition]);
+
+  // Handle component movement sync
+  const handleComponentMove = useCallback(
+    (componentId: string, position: { x: number; y: number }) => {
+      updateElementPosition(componentId, position);
+      sendComponentMovement(componentId, position);
+    },
+    [updateElementPosition, sendComponentMovement]
+  );
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -169,8 +170,9 @@ export default function DesignerWorkspace() {
             onAddElement={addElement}
             deviceType={canvasDevice}
             onDeviceChange={setCanvasDevice}
-            currentScreen={currentScreen}
+            currentScreen={currentScreen || { id: currentScreenId, name: "Loading...", elements: [] }}
             onNavigate={navigateToScreen}
+            onElementMove={handleComponentMove}
           />
 
           <div className="h-full overflow-y-auto">
@@ -181,6 +183,19 @@ export default function DesignerWorkspace() {
               screens={screens}
             />
           </div>
+        </div>
+
+        {/* Mostrar cursores remotos */}
+        <div className="fixed inset-0 pointer-events-none">
+          {Array.from(cursors.values()).map((cursor) => (
+            <RemoteCursor
+              key={cursor.userId}
+              x={cursor.x}
+              y={cursor.y}
+              username={cursor.username}
+              color={cursor.color}
+            />
+          ))}
         </div>
       </div>
     </DndProvider>

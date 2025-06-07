@@ -559,12 +559,37 @@ export function useDesignerWorkspace() {
     setSelectedElement(null);
   };
 
+  // Función para actualizar la posición de un elemento
+  const updateElementPosition = useCallback(
+    (elementId: string, position: { x: number; y: number }) => {
+      setScreens((prevScreens) => {
+        return prevScreens.map((screen) => {
+          if (screen.id === currentScreenId) {
+            return {
+              ...screen,
+              elements: screen.elements.map((element) => {
+                if (element.id === elementId) {
+                  return {
+                    ...element,
+                    position,
+                  };
+                }
+                return element;
+              }),
+            };
+          }
+          return screen;
+        });
+      });
+    },
+    [currentScreenId]
+  );
+
   return {
     screens,
     setScreens,
     currentScreenId,
     setCurrentScreenId,
-    currentScreenIdRef,
     selectedElement,
     setSelectedElement,
     history,
@@ -585,8 +610,7 @@ export function useDesignerWorkspace() {
     renameScreen,
     deleteScreen,
     navigateToScreen,
-    currentScreen,
-    exportProject,
-    importProject
+    currentScreen: screens.find((s) => s.id === currentScreenId),
+    updateElementPosition,
   };
 }

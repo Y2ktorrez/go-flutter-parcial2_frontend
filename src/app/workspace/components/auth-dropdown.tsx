@@ -13,6 +13,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import AuthModal from "@/components/auth-modal";
 import { useAuth } from "@/hooks/use-auth";
+import SaveProjectModal from "./save-project-modal";
+import { Button } from "@/components/ui/button";
+import LoadProjectModal from "./load-project-modal";
 
 /* ---------- helpers de estilo ---------- */
 const menuItem =
@@ -20,7 +23,7 @@ const menuItem =
 
 /* ---------- componente ---------- */
 export default function AuthDropdown() {
-  const {user, token, logout} = useAuth();
+  const { user, token, logout } = useAuth();
   const isLoggedIn = !!token;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,6 +31,8 @@ export default function AuthDropdown() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [modalMode, setModalMode] = useState<"login" | "signup">("login");
   const [roomCode, setRoomCode] = useState("");
+  const [showSave, setShowSave] = useState(false);
+  const [showLoad, setShowLoad] = useState(false);
 
   /* Cerrar con click-fuera o Escape */
   useEffect(() => {
@@ -48,9 +53,6 @@ export default function AuthDropdown() {
     };
   }, []);
 
-  /* placeholder callbacks */
-  const onSave = () => console.log("TODO: save current project");
-  const onLoad = () => console.log("TODO: load project");
   const onJoinCollab = () => console.log("TODO: join room", roomCode);
 
   return (
@@ -135,12 +137,12 @@ export default function AuthDropdown() {
                   </div>
 
                   {/* --- Acciones de proyecto --- */}
-                  <button onClick={onSave} className={menuItem}>
+                  <button onClick={() => setShowSave(true)}>
                     <Save size={16} /> Guardar proyecto
                   </button>
-                  <button onClick={onLoad} className={menuItem}>
+                  <Button onClick={() => setShowLoad(true)}>
                     <FolderOpen size={16} /> Cargar proyecto
-                  </button>
+                  </Button>
 
                   {/* --- Colaboración --- */}
                   <div className="px-4 py-3 space-y-2 border-y border-zinc-800/60">
@@ -184,6 +186,8 @@ export default function AuthDropdown() {
         initialMode={modalMode}
         onClose={() => setShowAuthModal(false)}
       />
+      <SaveProjectModal open={showSave} onClose={() => setShowSave(false)} />
+      <LoadProjectModal open={showLoad} onClose={() => setShowLoad(false)} />
     </>
   );
 }

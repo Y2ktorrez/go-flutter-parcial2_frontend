@@ -1,7 +1,11 @@
-'use client';
+"use client";
 
 import { generateFlutterCode } from "@/lib/code-generator";
-import { getDefaultHeight, getDefaultProperties, getDefaultWidth } from "@/lib/properties";
+import {
+  getDefaultHeight,
+  getDefaultProperties,
+  getDefaultWidth,
+} from "@/lib/properties";
 import { ComponentType, DesignElement, DeviceType, Screen } from "@/lib/types";
 import { useCallback, useRef, useState } from "react";
 
@@ -528,18 +532,52 @@ export function useDesignerWorkspace() {
   const currentScreen =
     screens.find((s) => s.id === currentScreenId) || screens[0];
 
+  const exportProject = () => ({
+    name: currentScreen.name, 
+    screens,
+    deviceDefault: canvasDevice,
+  });
+
+  const importProject = (project: {
+    screens: Screen[];
+    deviceDefault?: DeviceType;
+  }) => {
+    setScreens(project.screens);
+    setCanvasDevice(project.deviceDefault ?? "samsungA10");
+
+    /* reconstruir historial e índices */
+    const newHistory: Record<string, DesignElement[][]> = {};
+    const newIndex: Record<string, number> = {};
+    project.screens.forEach((s) => {
+      newHistory[s.id] = [s.elements];
+      newIndex[s.id] = 0;
+    });
+    setHistory(newHistory);
+    setHistoryIndex(newIndex);
+
+    setCurrentScreenId(project.screens[0]?.id ?? "screen-1");
+    setSelectedElement(null);
+  };
+
   return {
-    screens, setScreens,
-    currentScreenId, setCurrentScreenId,
+    screens,
+    setScreens,
+    currentScreenId,
+    setCurrentScreenId,
     currentScreenIdRef,
-    selectedElement, setSelectedElement,
-    history, setHistory,
-    historyIndex, setHistoryIndex,
-    canvasDevice, setCanvasDevice,
+    selectedElement,
+    setSelectedElement,
+    history,
+    setHistory,
+    historyIndex,
+    setHistoryIndex,
+    canvasDevice,
+    setCanvasDevice,
     addElement,
     updateElement,
     removeElement,
-    undo, redo,
+    undo,
+    redo,
     generateCode,
     clearCanvas,
     addScreen,
@@ -548,5 +586,7 @@ export function useDesignerWorkspace() {
     deleteScreen,
     navigateToScreen,
     currentScreen,
-  }
+    exportProject,
+    importProject
+  };
 }

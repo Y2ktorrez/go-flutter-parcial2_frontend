@@ -20,7 +20,7 @@ const COLORS = [
   '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB'
 ];
 
-export function useRealtime() {
+export function useRealtime(projectId: string) {
   const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -29,14 +29,15 @@ export function useRealtime() {
   const userColorRef = useRef(COLORS[Math.floor(Math.random() * COLORS.length)]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !projectId) return;
+
+    const url = `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/connect` +
+    `?project_id=${projectId}` +
+    `&user_id=${user.id}` +
+    `&username=${encodeURIComponent(user.name)}`;
 
     // Crear instancia de WebSocketClient
-    const wsClient = new WebSocketClient(
-      process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8080',
-      handleWebSocketMessage,
-      setIsConnected
-    );
+    const wsClient = new WebSocketClient(url, handleWebSocketMessage, setIsConnected);
 
     wsClientRef.current = wsClient;
     wsClient.connect();

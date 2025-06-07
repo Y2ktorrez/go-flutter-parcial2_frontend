@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import ComponentsSidebar from "./components-sidebar";
-import DesignCanvas from "./design-canvas";
-import PropertiesPanel from "./properties-panel";
-import ScreensManager from "./screens-manager";
-import { RotateCcw, RotateCw, Trash2, Users } from "lucide-react";
-import { DownloadZipButton } from "./export-flutter";
-import IaExample from "./ia/ia-example";
 import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
 import { useRealtime } from "@/hooks/use-realtime";
+import { useCallback, useEffect } from "react";
+import { RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { DownloadZipButton } from "../../components/export-flutter";
+import IaExample from "../../components/ia/ia-example";
+import ScreensManager from "../../components/screens-manager";
+import AuthDropdown from "../../components/auth-dropdown";
+import ComponentsSidebar from "../../components/components-sidebar";
+import DesignCanvas from "../../components/design-canvas";
+import PropertiesPanel from "../../components/properties-panel";
 import { RemoteCursor } from "@/components/remote-cursor";
-import AuthDropdown from "./auth-dropdown";
 
-export default function DesignerWorkspace() {
+export default function DesignerWebsocket({ projectId }: { projectId: string  }) {
   const {
     screens,
     currentScreenId,
@@ -41,6 +41,62 @@ export default function DesignerWorkspace() {
     navigateToScreen,
     currentScreen,
   } = useDesignerWorkspace();
+
+  const {
+    isConnected,
+    cursors,
+    connectedUsers,
+    updateCursorPosition,
+    sendComponentMovement,
+    userColor
+  } = useRealtime(projectId);
+
+  // Handle mouse movement for cursor sharing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const bounds = document.getElementById("design-canvas")?.getBoundingClientRect();
+      if (!bounds) return;
+
+      const x = e.clientX - bounds.left;
+      const y = e.clientY - bounds.top;
+      updateCursorPosition(x, y);
+    };
+
+    const canvas = document.getElementById("design-canvas");
+    if (canvas) {
+      canvas.addEventListener("mousemove", handleMouseMove);
+    }
+
+    return () => {
+      canvas?.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [updateCursorPosition]);
+
+  // Handle remote component movements
+  useEffect(() => {
+    const handleRemoteMove = (e: CustomEvent<{
+      componentId: string;
+      position: { x: number; y: number };
+      userId: string;
+    }>) => {
+      const { componentId, position } = e.detail;
+      updateElementPosition(componentId, position);
+    };
+
+    window.addEventListener("remote-component-move" as any, handleRemoteMove);
+    return () => {
+      window.removeEventListener("remote-component-move" as any, handleRemoteMove);
+    };
+  }, [updateElementPosition]);
+
+  // Handle component movement sync
+  const handleComponentMove = useCallback(
+    (componentId: string, position: { x: number; y: number }) => {
+      updateElementPosition(componentId, position);
+      sendComponentMovement(componentId, position);
+    },
+    [updateElementPosition, sendComponentMovement]
+  );
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -113,6 +169,7 @@ export default function DesignerWorkspace() {
             onDeviceChange={setCanvasDevice}
             currentScreen={currentScreen || { id: currentScreenId, name: "Loading...", elements: [] }}
             onNavigate={navigateToScreen}
+            onElementMove={handleComponentMove}
           />
 
           <div className="h-full overflow-y-auto">
@@ -123,6 +180,19 @@ export default function DesignerWorkspace() {
               screens={screens}
             />
           </div>
+        </div>
+
+        {/* Mostrar cursores remotos */}
+        <div className="fixed inset-0 pointer-events-none">
+          {Array.from(cursors.values()).map((cursor) => (
+            <RemoteCursor
+              key={cursor.userId}
+              x={cursor.x}
+              y={cursor.y}
+              username={cursor.username}
+              color={cursor.color}
+            />
+          ))}
         </div>
       </div>
     </DndProvider>

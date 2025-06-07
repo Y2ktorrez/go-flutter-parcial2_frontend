@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
 import { useAuth } from "@/hooks/use-auth";
 import { API_BASE_URL } from "@/lib/auth";
+import { useRouter } from "next/navigation"; 
 
 interface LoadModalProps {
   open: boolean;
@@ -22,8 +22,8 @@ interface ProjectSummary {
 }
 
 export default function LoadProjectModal({ open, onClose }: LoadModalProps) {
-  const { importProject } = useDesignerWorkspace();
   const { token } = useAuth();
+  const router = useRouter();
 
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,8 +62,8 @@ export default function LoadProjectModal({ open, onClose }: LoadModalProps) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();              // ← contiene title, content, etc.
-      importProject(data.content);                // usar el método del hook
       onClose();
+      router.push(`/workspaces/${data.ID}`);
     } catch (e) {
       setError((e as Error).message);
     } finally {

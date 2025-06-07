@@ -10,6 +10,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
 import { useAuth } from "@/hooks/use-auth";
 import { API_BASE_URL } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+
+// ! Implmentar el update 
 
 interface SaveProjectModalProps {
   open: boolean;
@@ -22,6 +25,7 @@ interface SaveProjectModalProps {
 export default function SaveProjectModal({ open, onClose }: SaveProjectModalProps) {
   const { exportProject } = useDesignerWorkspace();
   const { token } = useAuth();
+  const router = useRouter();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -45,7 +49,7 @@ export default function SaveProjectModal({ open, onClose }: SaveProjectModalProp
       const body = {
         title: title.trim(),
         description: description.trim(),
-        content: exportProject(), 
+        content: exportProject(),
       };
 
       const res = await fetch(`${API_BASE_URL}/projects/`, {
@@ -62,8 +66,10 @@ export default function SaveProjectModal({ open, onClose }: SaveProjectModalProp
         throw new Error(msg || "Error al guardar el proyecto.");
       }
 
+      const saved = await res.json();
       /* éxito => podrías mostrar un toast */
       onClose();
+      router.replace(`/workspaces/${saved.ID}`);
     } catch (e) {
       setError((e as Error).message);
     } finally {

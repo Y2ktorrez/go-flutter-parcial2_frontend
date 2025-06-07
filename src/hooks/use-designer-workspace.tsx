@@ -612,5 +612,7 @@ export function useDesignerWorkspace() {
     navigateToScreen,
     currentScreen: screens.find((s) => s.id === currentScreenId),
     updateElementPosition,
+    exportProject,
+    importProject,
   };
 }

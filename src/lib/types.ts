@@ -20,7 +20,7 @@ export type ComponentType =
   | "checkboxWithLabel"
   | "dynamicTable";
 
-export type DeviceType = "iphone13" | "pixel6" | "samsungs21";
+export type DeviceType = "samsungA10" | "realme8_5g" | "samsungS22Ultra";
 
 export interface DesignElement {
   id: string;

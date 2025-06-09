@@ -12,6 +12,7 @@ import { DownloadZipButton } from "./export-flutter";
 import IaExample from "./ia/ia-example";
 import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
 import AuthDropdown from "./auth-dropdown";
+import { wsClient } from "@/lib/websocket";
 
 export default function DesignerWorkspace() {
   const {
@@ -99,6 +100,11 @@ export default function DesignerWorkspace() {
       );
     });
   }, [screens]);
+
+  useEffect(() => {
+    console.log("🔗 Conectando al WebSocket...");
+    wsClient.connect("default1", "frontend", "Frontend");
+  }, []);
 
   return (
     <DndProvider backend={HTML5Backend}>

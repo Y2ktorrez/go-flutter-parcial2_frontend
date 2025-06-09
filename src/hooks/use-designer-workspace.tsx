@@ -7,7 +7,9 @@ import {
   getDefaultWidth,
 } from "@/lib/properties";
 import { ComponentType, DesignElement, DeviceType, Screen } from "@/lib/types";
-import { useCallback, useRef, useState } from "react";
+import { wsClient } from "@/lib/websocket";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSocket } from "./use-socket";
 
 export function useDesignerWorkspace() {
   const [screens, setScreens] = useState<Screen[]>([
@@ -156,6 +158,7 @@ export function useDesignerWorkspace() {
 
       // Seleccionar el nuevo elemento
       setSelectedElement(newElement);
+      // wsClient.emit("ELEMENT_ADD", { screenId, element: newElement });
 
       console.log("➕ FIN AGREGAR ELEMENTO");
     },
@@ -209,6 +212,9 @@ export function useDesignerWorkspace() {
         }
         return prevSelected;
       });
+
+      // dentro de updateElement, justo después de setSelectedElement(...)
+      wsClient.emit("ELEMENT_UPDATE", { screenId, id, updates });
     },
     [addToHistory]
   );
@@ -249,6 +255,8 @@ export function useDesignerWorkspace() {
         setTimeout(() => {
           addToHistory(updatedElements);
         }, 0);
+
+        wsClient.emit("ELEMENT_REMOVE", { screenId, id });
 
         return updatedScreens;
       });
@@ -533,7 +541,7 @@ export function useDesignerWorkspace() {
     screens.find((s) => s.id === currentScreenId) || screens[0];
 
   const exportProject = () => ({
-    name: currentScreen.name, 
+    name: currentScreen.name,
     screens,
     deviceDefault: canvasDevice,
   });
@@ -558,6 +566,87 @@ export function useDesignerWorkspace() {
     setCurrentScreenId(project.screens[0]?.id ?? "screen-1");
     setSelectedElement(null);
   };
+
+  /* -------------------- inbound WS events -------------------- */
+  useSocket(
+    "ELEMENT_ADD",
+    ({ screenId, element }: { screenId: string; element: DesignElement }) => {
+      console.log("🆕 ELEMENTO AÑADIDO:", screenId, element.id);
+      if (screenId !== currentScreenIdRef.current) return;
+    addElementLocal(element);
+    }
+  );
+
+  /* helper: actual mutator, NO broadcast ------------------------ */
+const addElementLocal = useCallback(
+  (element: DesignElement) => {
+    const screenId = currentScreenIdRef.current;
+
+    setScreens((prev) => {
+      const i = prev.findIndex((s) => s.id === screenId);
+      if (i === -1) return prev;
+
+      /* evita duplicar si llega dos veces */
+      if (prev[i].elements.some((el) => el.id === element.id)) return prev;
+
+      const next = [...prev];
+      next[i] = { ...next[i], elements: [...next[i].elements, element] };
+      return next;
+    });
+
+    setSelectedElement(element);
+    addToHistory([...getCurrentScreenElements(), element]);
+  },
+  [addToHistory, getCurrentScreenElements]
+);
+
+
+  useSocket(
+    "ELEMENT_UPDATE",
+    ({
+      screenId,
+      id,
+      updates,
+    }: {
+      screenId: string;
+      id: string;
+      updates: Partial<DesignElement>;
+    }) => {
+      if (screenId !== currentScreenIdRef.current) return;
+      setScreens((prev) => {
+        const i = prev.findIndex((s) => s.id === screenId);
+        if (i === -1) return prev;
+        const next = [...prev];
+        next[i] = {
+          ...next[i],
+          elements: next[i].elements.map((el) =>
+            el.id === id ? { ...el, ...updates } : el
+          ),
+        };
+        return next;
+      });
+    }
+  );
+
+  useSocket(
+    "ELEMENT_REMOVE",
+    ({ screenId, id }: { screenId: string; id: string }) => {
+      if (screenId !== currentScreenIdRef.current) return;
+      setScreens((prev) => {
+        const i = prev.findIndex((s) => s.id === screenId);
+        if (i === -1) return prev;
+        const next = [...prev];
+        next[i] = {
+          ...next[i],
+          elements: next[i].elements.filter((el) => el.id !== id),
+        };
+        return next;
+      });
+      setSelectedElement((prev) => (prev && prev.id === id ? null : prev));
+    }
+  );
+
+  
 
   return {
     screens,
@@ -587,6 +676,6 @@ export function useDesignerWorkspace() {
     navigateToScreen,
     currentScreen,
     exportProject,
-    importProject
+    importProject,
   };
 }

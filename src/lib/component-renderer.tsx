@@ -12,18 +12,28 @@ export function renderComponentPreview(element: DesignElement, isDarkMode: boole
       return renderTextField(properties, isDarkMode);
     case "card":
       return renderCard(properties, isDarkMode);
-    case "list":
-      return renderList(properties, isDarkMode);
-    case "icon":
-      return renderIcon(properties);
-    case "container":
-      return renderContainer(properties, isDarkMode);
-    case "row":
-      return renderRow(properties, isDarkMode);
-    case "column":
-      return renderColumn(properties, isDarkMode);
-    case "stack":
-      return renderStack(properties, isDarkMode);
+    case "switch":
+      return renderSwitch(properties);
+    case "checkbox":
+      return renderCheckbox(properties);
+    case "radio":
+      return renderRadio(properties);
+    case "chatInput":
+      return renderChatInput(properties, isDarkMode);
+    case "chatMessage":
+      return renderChatMessage(properties, isDarkMode);
+    case "dropdown":
+      return renderDropdown(properties, isDarkMode);
+    case "inputWithLabel":
+      return renderInputWithLabel(properties, isDarkMode);
+    case "switchWithLabel":
+      return renderSwitchWithLabel(properties, isDarkMode);
+    case "radioWithLabel":
+      return renderRadioWithLabel(properties, isDarkMode);
+    case "checkboxWithLabel":
+      return renderCheckboxWithLabel(properties, isDarkMode);
+    case "dynamicTable":
+      return renderDynamicTable(properties, isDarkMode);
     case "label":
       return renderLabel(properties, isDarkMode);
     default:
@@ -236,28 +246,6 @@ function renderList(properties: Record<string, any>, isDarkMode: boolean) {
           )}
         </div>
       ))}
-    </div>
-  );
-}
-
-function renderIcon(properties: Record<string, any>) {
-  const { name, color, size } = properties;
-
-  return (
-    <div className="flex h-full w-full items-center justify-center" style={{ color }}>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-      </svg>
     </div>
   );
 }

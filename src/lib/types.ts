@@ -3,7 +3,6 @@ export type ComponentType =
   | "textField"
   | "card"
   | "list"
-  | "icon"
   | "container"
   | "row"
   | "column"

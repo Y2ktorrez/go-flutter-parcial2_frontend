@@ -42,12 +42,6 @@ export function getPropertiesConfig(type: ComponentType): PropertyConfig[] {
         { name: "color", label: "Background Color", type: "color" },
         { name: "padding", label: "Padding", type: "number" },
       ];
-    case "icon":
-      return [
-        { name: "name", label: "Icon Name", type: "text" },
-        { name: "color", label: "Color", type: "color" },
-        { name: "size", label: "Size", type: "number" },
-      ];
     case "row":
       return [
         {

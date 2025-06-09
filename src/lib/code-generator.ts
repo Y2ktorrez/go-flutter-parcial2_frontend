@@ -202,8 +202,6 @@ function generateElementWidget(element: DesignElement, index: number): string {
       return generateDynamicTableWidget(properties);
     case "list":
       return generateListWidget(properties);
-    case "icon":
-      return generateIconWidget(properties);
     case "container":
       return generateContainerWidget(properties);
     case "row":
@@ -765,17 +763,6 @@ function generateListWidget(properties: Record<string, any>): string {
     },
   )`;
   }
-}
-
-function generateIconWidget(properties: Record<string, any>): string {
-  const { name, color, size } = properties;
-
-  return `
-  Icon(
-    Icons.${name || "star"},
-    color: Color(${hexToArgb(color)}),
-    size: ${size.toFixed(1)},
-  )`;
 }
 
 function generateContainerWidget(properties: Record<string, any>): string {

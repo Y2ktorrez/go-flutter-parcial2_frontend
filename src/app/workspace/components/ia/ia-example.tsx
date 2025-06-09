@@ -183,7 +183,7 @@ export default function IaDesignModal({ addScreenIA }: Example) {
       **Critical Rules:**
       1. **NO NESTING:** All elements MUST be root-level. DO NOT use "children" property at all.
       2. **Component Types:** ONLY use these ComponentType values: 
-        "button", "textField", "card", "icon", 
+        "button", "textField", "card", "label", 
         "switch", "checkbox", "radio", "chatInput", "chatMessage", "dropdown", 
         "inputWithLabel", "switchWithLabel", "radioWithLabel", "checkboxWithLabel", "dynamicTable".
 
@@ -273,7 +273,7 @@ export default function IaDesignModal({ addScreenIA }: Example) {
       **Critical Rules:**
       1. **NO NESTING:** All elements MUST be root-level. DO NOT use "children" property at all.
       2. **Component Types:** ONLY use these ComponentType values: 
-        "button", "textField", "card", "icon", 
+        "button", "textField", "card", "label", 
         "switch", "checkbox", "radio", "chatInput", "chatMessage", "dropdown", 
         "inputWithLabel", "switchWithLabel", "radioWithLabel", "checkboxWithLabel", "dynamicTable".
 

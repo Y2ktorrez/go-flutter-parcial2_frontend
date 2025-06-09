@@ -22,7 +22,6 @@ export default function ComponentsSidebar({ onAddElement }: ComponentsSidebarPro
       title: "Basic",      components: [
         { type: "button", label: "Button", icon: <ButtonIcon /> },
         { type: "textField", label: "Text Field", icon: <TextFieldIcon /> },
-        { type: "icon", label: "Icon", icon: <IconComponentIcon /> },
         { type: "label", label: "Label", icon: <LabelIcon /> },
       ],
     },

@@ -1,4 +1,4 @@
-import { ComponentType } from "./types";
+import { ComponentType, PropertyConfig } from "./types";
 
 // Especificaciones corregidas basadas en las especificaciones reales de los dispositivos
 export const devices = [
@@ -135,6 +135,8 @@ export const getDefaultWidth = (type: ComponentType): number => {
       return 200;
     case "dynamicTable":
       return 350;
+    case "label":
+      return 200;
     default:
       return 100;
   }
@@ -183,159 +185,605 @@ export const getDefaultHeight = (type: ComponentType): number => {
       return 40;
     case "dynamicTable":
       return 200;
+    case "label":
+      return 24;
     default:
       return 50;
   }
 };
 
 // Get default properties based on component type
-export const getDefaultProperties = (type: ComponentType) => {
+export const getDefaultProperties = (type: ComponentType): Record<string, any> => {
   switch (type) {
     case "button":
       return {
         text: "Button",
-        variant: "primary",
-        rounded: true,
-        color: "#2196F3",
+        color: "#007AFF",
         textColor: "#FFFFFF",
-        padding: 16,
-        navigateTo: "",
+        padding: 12,
+        rounded: true,
       };
-    case "textField":
+    case "label":
       return {
-        hint: "Enter text",
-        label: "Label",
-        hasIcon: false,
-        icon: "search",
-        validation: false,
-        validationMessage: "Please enter a valid value",
-      };
-    case "card":
-      return {
-        elevation: 2,
-        borderRadius: 8,
-        color: "#FFFFFF",
-        padding: 16,
-        title: "Card Title",
-        subtitle: "Card Subtitle",
-        content: "This is the main content of the card. You can add any text or description here.",
-        showImage: true,
-        imageHeight: 120,
-      };
-    case "icon":
-      return {
-        name: "star",
+        text: "Label",
+        fontSize: 14,
+        fontWeight: "normal",
         color: "#000000",
-        size: 24,
-      };
-    case "switch":
-      return {
-        value: false,
-        activeColor: "#2196F3",
-        inactiveColor: "#9E9E9E",
-      };
-    case "checkbox":
-      return {
-        value: false,
-        activeColor: "#2196F3",
-      };
-    case "radio":
-      return {
-        value: false,
-        activeColor: "#2196F3",
-        groupValue: "option1",
-      };
-    case "chatInput":
-      return {
-        placeholder: "Type a message...",
-        buttonText: "Send",
-        buttonColor: "#2196F3",
-      };
-    case "chatMessage":
-      return {
-        text: "Hello! This is a sample message.",
-        isUser: true,
-        avatar: true,
-        timestamp: true,
-      };
-    case "dropdown":
-      return {
-        label: "Select an option",
-        placeholder: "Choose...",
-        options: JSON.stringify([
-          { label: "Option 1", value: "option1" },
-          { label: "Option 2", value: "option2" },
-          { label: "Option 3", value: "option3" },
-        ]),
-        value: "",
-        required: false,
-        disabled: false,
-        borderColor: "#d1d5db",
-        backgroundColor: "#ffffff",
-      };
-    case "inputWithLabel":
-      return {
-        label: "Input Label",
-        placeholder: "Enter text...",
-        value: "",
-        type: "text",
-        required: false,
-        disabled: false,
-        borderColor: "#d1d5db",
-        labelColor: "#374151",
-      };
-    case "switchWithLabel":
-      return {
-        label: "Toggle Switch",
-        value: false,
-        activeColor: "#2196F3",
-        inactiveColor: "#9E9E9E",
-        labelPosition: "right",
-        disabled: false,
-        labelColor: "#374151",
-      };
-    case "radioWithLabel":
-      return {
-        label: "Radio Option",
-        value: false,
-        activeColor: "#2196F3",
-        groupValue: "option1",
-        labelPosition: "right",
-        disabled: false,
-        labelColor: "#374151",
-      };
-    case "checkboxWithLabel":
-      return {
-        label: "Checkbox Option",
-        value: false,
-        activeColor: "#2196F3",
-        labelPosition: "right",
-        disabled: false,
-        labelColor: "#374151",
-      };
-    case "dynamicTable":
-      return {
-        title: "Data Table",
-        columns: JSON.stringify([
-          { id: "name", title: "Name", width: 120 },
-          { id: "email", title: "Email", width: 180 },
-          { id: "role", title: "Role", width: 100 },
-        ]),
-        data: JSON.stringify([
-          { name: "John Doe", email: "john@example.com", role: "Admin" },
-          { name: "Jane Smith", email: "jane@example.com", role: "User" },
-          { name: "Bob Johnson", email: "bob@example.com", role: "Editor" },
-        ]),
-        showHeader: true,
-        showBorder: true,
-        striped: true,
-        headerColor: "#f3f4f6",
-        borderColor: "#e5e7eb",
-        evenRowColor: "#ffffff",
-        oddRowColor: "#f9fafb",
-        sortable: true,
+        textAlign: "left",
       };
     default:
       return {};
   }
 };
+
+export function getPropertyConfig(type: ComponentType): PropertyConfig[] {
+  switch (type) {
+    case "button":
+      return [
+        {
+          name: "text",
+          label: "Text",
+          type: "text",
+          required: true,
+        },
+        {
+          name: "variant",
+          label: "Variant",
+          type: "select",
+          options: [
+            { label: "Primary", value: "primary" },
+            { label: "Secondary", value: "secondary" },
+          ],
+        },
+        {
+          name: "rounded",
+          label: "Rounded",
+          type: "boolean",
+        },
+        {
+          name: "color",
+          label: "Color",
+          type: "color",
+        },
+        {
+          name: "textColor",
+          label: "Text Color",
+          type: "color",
+        },
+        {
+          name: "padding",
+          label: "Padding",
+          type: "number",
+          min: 0,
+          max: 50,
+        },
+        {
+          name: "navigateTo",
+          label: "Navigate To",
+          type: "text",
+        },
+      ];
+    case "textField":
+      return [
+        {
+          name: "hint",
+          label: "Hint",
+          type: "text",
+        },
+        {
+          name: "label",
+          label: "Label",
+          type: "text",
+        },
+        {
+          name: "hasIcon",
+          label: "Has Icon",
+          type: "boolean",
+        },
+        {
+          name: "icon",
+          label: "Icon",
+          type: "text",
+        },
+        {
+          name: "validation",
+          label: "Validation",
+          type: "boolean",
+        },
+        {
+          name: "validationMessage",
+          label: "Validation Message",
+          type: "text",
+        },
+      ];
+    case "card":
+      return [
+        {
+          name: "elevation",
+          label: "Elevation",
+          type: "number",
+          min: 0,
+          max: 10,
+        },
+        {
+          name: "borderRadius",
+          label: "Border Radius",
+          type: "number",
+          min: 0,
+          max: 50,
+        },
+        {
+          name: "color",
+          label: "Color",
+          type: "color",
+        },
+        {
+          name: "padding",
+          label: "Padding",
+          type: "number",
+          min: 0,
+          max: 50,
+        },
+        {
+          name: "title",
+          label: "Title",
+          type: "text",
+        },
+        {
+          name: "subtitle",
+          label: "Subtitle",
+          type: "text",
+        },
+        {
+          name: "content",
+          label: "Content",
+          type: "text",
+        },
+        {
+          name: "showImage",
+          label: "Show Image",
+          type: "boolean",
+        },
+        {
+          name: "imageHeight",
+          label: "Image Height",
+          type: "number",
+          min: 0,
+          max: 500,
+        },
+      ];
+    case "icon":
+      return [
+        {
+          name: "name",
+          label: "Name",
+          type: "text",
+        },
+        {
+          name: "color",
+          label: "Color",
+          type: "color",
+        },
+        {
+          name: "size",
+          label: "Size",
+          type: "number",
+          min: 0,
+          max: 100,
+        },
+      ];
+    case "switch":
+      return [
+        {
+          name: "value",
+          label: "Value",
+          type: "boolean",
+        },
+        {
+          name: "activeColor",
+          label: "Active Color",
+          type: "color",
+        },
+        {
+          name: "inactiveColor",
+          label: "Inactive Color",
+          type: "color",
+        },
+      ];
+    case "checkbox":
+      return [
+        {
+          name: "value",
+          label: "Value",
+          type: "boolean",
+        },
+        {
+          name: "activeColor",
+          label: "Active Color",
+          type: "color",
+        },
+      ];
+    case "radio":
+      return [
+        {
+          name: "value",
+          label: "Value",
+          type: "boolean",
+        },
+        {
+          name: "activeColor",
+          label: "Active Color",
+          type: "color",
+        },
+        {
+          name: "groupValue",
+          label: "Group Value",
+          type: "text",
+        },
+      ];
+    case "chatInput":
+      return [
+        {
+          name: "placeholder",
+          label: "Placeholder",
+          type: "text",
+        },
+        {
+          name: "buttonText",
+          label: "Button Text",
+          type: "text",
+        },
+        {
+          name: "buttonColor",
+          label: "Button Color",
+          type: "color",
+        },
+      ];
+    case "chatMessage":
+      return [
+        {
+          name: "text",
+          label: "Text",
+          type: "text",
+        },
+        {
+          name: "isUser",
+          label: "Is User",
+          type: "boolean",
+        },
+        {
+          name: "avatar",
+          label: "Avatar",
+          type: "boolean",
+        },
+        {
+          name: "timestamp",
+          label: "Timestamp",
+          type: "boolean",
+        },
+      ];
+    case "dropdown":
+      return [
+        {
+          name: "label",
+          label: "Label",
+          type: "text",
+        },
+        {
+          name: "placeholder",
+          label: "Placeholder",
+          type: "text",
+        },
+        {
+          name: "options",
+          label: "Options",
+          type: "json",
+        },
+        {
+          name: "value",
+          label: "Value",
+          type: "text",
+        },
+        {
+          name: "required",
+          label: "Required",
+          type: "boolean",
+        },
+        {
+          name: "disabled",
+          label: "Disabled",
+          type: "boolean",
+        },
+        {
+          name: "borderColor",
+          label: "Border Color",
+          type: "color",
+        },
+        {
+          name: "backgroundColor",
+          label: "Background Color",
+          type: "color",
+        },
+      ];
+    case "inputWithLabel":
+      return [
+        {
+          name: "label",
+          label: "Label",
+          type: "text",
+        },
+        {
+          name: "placeholder",
+          label: "Placeholder",
+          type: "text",
+        },
+        {
+          name: "value",
+          label: "Value",
+          type: "text",
+        },
+        {
+          name: "type",
+          label: "Type",
+          type: "select",
+          options: [
+            { label: "Text", value: "text" },
+            { label: "Password", value: "password" },
+          ],
+        },
+        {
+          name: "required",
+          label: "Required",
+          type: "boolean",
+        },
+        {
+          name: "disabled",
+          label: "Disabled",
+          type: "boolean",
+        },
+        {
+          name: "borderColor",
+          label: "Border Color",
+          type: "color",
+        },
+        {
+          name: "labelColor",
+          label: "Label Color",
+          type: "color",
+        },
+      ];
+    case "switchWithLabel":
+      return [
+        {
+          name: "label",
+          label: "Label",
+          type: "text",
+        },
+        {
+          name: "value",
+          label: "Value",
+          type: "boolean",
+        },
+        {
+          name: "activeColor",
+          label: "Active Color",
+          type: "color",
+        },
+        {
+          name: "inactiveColor",
+          label: "Inactive Color",
+          type: "color",
+        },
+        {
+          name: "labelPosition",
+          label: "Label Position",
+          type: "select",
+          options: [
+            { label: "Left", value: "left" },
+            { label: "Right", value: "right" },
+          ],
+        },
+        {
+          name: "disabled",
+          label: "Disabled",
+          type: "boolean",
+        },
+        {
+          name: "labelColor",
+          label: "Label Color",
+          type: "color",
+        },
+      ];
+    case "radioWithLabel":
+      return [
+        {
+          name: "label",
+          label: "Label",
+          type: "text",
+        },
+        {
+          name: "value",
+          label: "Value",
+          type: "boolean",
+        },
+        {
+          name: "activeColor",
+          label: "Active Color",
+          type: "color",
+        },
+        {
+          name: "groupValue",
+          label: "Group Value",
+          type: "text",
+        },
+        {
+          name: "labelPosition",
+          label: "Label Position",
+          type: "select",
+          options: [
+            { label: "Left", value: "left" },
+            { label: "Right", value: "right" },
+          ],
+        },
+        {
+          name: "disabled",
+          label: "Disabled",
+          type: "boolean",
+        },
+        {
+          name: "labelColor",
+          label: "Label Color",
+          type: "color",
+        },
+      ];
+    case "checkboxWithLabel":
+      return [
+        {
+          name: "label",
+          label: "Label",
+          type: "text",
+        },
+        {
+          name: "value",
+          label: "Value",
+          type: "boolean",
+        },
+        {
+          name: "activeColor",
+          label: "Active Color",
+          type: "color",
+        },
+        {
+          name: "labelPosition",
+          label: "Label Position",
+          type: "select",
+          options: [
+            { label: "Left", value: "left" },
+            { label: "Right", value: "right" },
+          ],
+        },
+        {
+          name: "disabled",
+          label: "Disabled",
+          type: "boolean",
+        },
+        {
+          name: "labelColor",
+          label: "Label Color",
+          type: "color",
+        },
+      ];
+    case "dynamicTable":
+      return [
+        {
+          name: "title",
+          label: "Title",
+          type: "text",
+        },
+        {
+          name: "columns",
+          label: "Columns",
+          type: "json",
+        },
+        {
+          name: "data",
+          label: "Data",
+          type: "json",
+        },
+        {
+          name: "showHeader",
+          label: "Show Header",
+          type: "boolean",
+        },
+        {
+          name: "showBorder",
+          label: "Show Border",
+          type: "boolean",
+        },
+        {
+          name: "striped",
+          label: "Striped",
+          type: "boolean",
+        },
+        {
+          name: "headerColor",
+          label: "Header Color",
+          type: "color",
+        },
+        {
+          name: "borderColor",
+          label: "Border Color",
+          type: "color",
+        },
+        {
+          name: "evenRowColor",
+          label: "Even Row Color",
+          type: "color",
+        },
+        {
+          name: "oddRowColor",
+          label: "Odd Row Color",
+          type: "color",
+        },
+        {
+          name: "sortable",
+          label: "Sortable",
+          type: "boolean",
+        },
+      ];
+    case "label":
+      return [
+        {
+          name: "text",
+          label: "Text Content",
+          type: "text",
+          required: true,
+          defaultValue: "Label",
+          placeholder: "Enter text here",
+          description: "The text content to display in the label"
+        },
+        {
+          name: "fontSize",
+          label: "Font Size",
+          type: "number",
+          min: 8,
+          max: 72,
+          defaultValue: 14,
+          step: 1,
+          description: "Size of the text in pixels"
+        },
+        {
+          name: "fontWeight",
+          label: "Font Weight",
+          type: "select",
+          defaultValue: "normal",
+          options: [
+            { label: "Normal", value: "normal" },
+            { label: "Bold", value: "bold" }
+          ],
+          description: "Weight/boldness of the text"
+        },
+        {
+          name: "color",
+          label: "Text Color",
+          type: "color",
+          defaultValue: "#000000",
+          description: "Color of the text"
+        },
+        {
+          name: "textAlign",
+          label: "Text Alignment",
+          type: "select",
+          defaultValue: "left",
+          options: [
+            { label: "Left", value: "left" },
+            { label: "Center", value: "center" },
+            { label: "Right", value: "right" }
+          ],
+          description: "Horizontal alignment of the text"
+        }
+      ];
+    default:
+      return [];
+  }
+}

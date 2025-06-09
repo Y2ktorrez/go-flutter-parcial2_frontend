@@ -48,6 +48,7 @@ export function getPropertiesConfig(type: ComponentType): PropertyConfig[] {
         { name: "color", label: "Color", type: "color" },
         { name: "size", label: "Size", type: "number" },
       ];
+    case "row":
       return [
         {
           name: "mainAxisAlignment",
@@ -209,6 +210,46 @@ export function getPropertiesConfig(type: ComponentType): PropertyConfig[] {
         { name: "borderColor", label: "Border Color", type: "color" },
         { name: "evenRowColor", label: "Even Row Color", type: "color" },
         { name: "oddRowColor", label: "Odd Row Color", type: "color" },
+      ];
+    case "label":
+      return [
+        {
+          name: "text",
+          label: "Text",
+          type: "text",
+          required: true,
+        },
+        {
+          name: "fontSize",
+          label: "Font Size",
+          type: "number",
+          min: 8,
+          max: 72,
+        },
+        {
+          name: "fontWeight",
+          label: "Font Weight",
+          type: "select",
+          options: [
+            { label: "Normal", value: "normal" },
+            { label: "Bold", value: "bold" },
+          ],
+        },
+        {
+          name: "color",
+          label: "Text Color",
+          type: "color",
+        },
+        {
+          name: "textAlign",
+          label: "Alignment",
+          type: "select",
+          options: [
+            { label: "Left", value: "left" },
+            { label: "Center", value: "center" },
+            { label: "Right", value: "right" },
+          ],
+        },
       ];
     default:
       return [];

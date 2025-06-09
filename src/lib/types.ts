@@ -18,7 +18,8 @@ export type ComponentType =
   | "switchWithLabel"
   | "radioWithLabel"
   | "checkboxWithLabel"
-  | "dynamicTable";
+  | "dynamicTable"
+  | "label";
 
 export type DeviceType = "samsungA10" | "realme8_5g" | "samsungS22Ultra";
 
@@ -38,6 +39,17 @@ export interface PropertyConfig {
   label: string;
   type: "text" | "number" | "boolean" | "select" | "color" | "screen" | "options" | "columns" | "json";
   options?: { label: string; value: string }[];
+  required?: boolean;
+  min?: number;
+  max?: number;
+  defaultValue?: string | number | boolean;
+  placeholder?: string;
+  description?: string;
+  step?: number;
+  validation?: {
+    pattern?: string;
+    message?: string;
+  };
 }
 
 export interface Screen {

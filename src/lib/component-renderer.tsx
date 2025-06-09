@@ -24,28 +24,8 @@ export function renderComponentPreview(element: DesignElement, isDarkMode: boole
       return renderColumn(properties, isDarkMode);
     case "stack":
       return renderStack(properties, isDarkMode);
-    case "switch":
-      return renderSwitch(properties);
-    case "checkbox":
-      return renderCheckbox(properties);
-    case "radio":
-      return renderRadio(properties);
-    case "chatInput":
-      return renderChatInput(properties, isDarkMode);
-    case "chatMessage":
-      return renderChatMessage(properties, isDarkMode);
-    case "dropdown":
-      return renderDropdown(properties, isDarkMode);
-    case "inputWithLabel":
-      return renderInputWithLabel(properties, isDarkMode);
-    case "switchWithLabel":
-      return renderSwitchWithLabel(properties, isDarkMode);
-    case "radioWithLabel":
-      return renderRadioWithLabel(properties, isDarkMode);
-    case "checkboxWithLabel":
-      return renderCheckboxWithLabel(properties, isDarkMode);
-    case "dynamicTable":
-      return renderDynamicTable(properties, isDarkMode);
+    case "label":
+      return renderLabel(properties, isDarkMode);
     default:
       return <div className="h-full w-full bg-gray-200" />;
   }
@@ -803,6 +783,28 @@ function renderCheckboxWithLabel(properties: Record<string, any>, isDarkMode: bo
           {label || "Checkbox option"}
         </label>
       )}
+    </div>
+  );
+}
+
+function renderLabel(properties: Record<string, any>, isDarkMode: boolean) {
+  const { text = "", fontSize = 14, fontWeight = "normal", color = "#000000", textAlign = "left" } = properties;
+
+  return (
+    <div
+      style={{
+        color: isDarkMode ? "#ffffff" : color,
+        fontSize: `${fontSize}px`,
+        fontWeight,
+        textAlign,
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        userSelect: "none",
+      }}
+    >
+      {text}
     </div>
   );
 }

@@ -19,11 +19,11 @@ interface DraggableComponentProps {
 export default function ComponentsSidebar({ onAddElement }: ComponentsSidebarProps) {
   const componentGroups = [
     {
-      title: "Basic",
-      components: [
+      title: "Basic",      components: [
         { type: "button", label: "Button", icon: <ButtonIcon /> },
         { type: "textField", label: "Text Field", icon: <TextFieldIcon /> },
         { type: "icon", label: "Icon", icon: <IconComponentIcon /> },
+        { type: "label", label: "Label", icon: <LabelIcon /> },
       ],
     },
     {
@@ -257,6 +257,14 @@ function TableIcon() {
       <line x1="3" y1="16" x2="21" y2="16" stroke="currentColor" strokeWidth="2" />
       <line x1="9" y1="4" x2="9" y2="20" stroke="currentColor" strokeWidth="2" />
       <line x1="15" y1="4" x2="15" y2="20" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function LabelIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }

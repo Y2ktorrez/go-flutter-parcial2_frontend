@@ -232,6 +232,8 @@ function generateElementWidget(element: DesignElement, index: number): string {
       return generateRadioWithLabelWidget(properties);
     case "checkboxWithLabel":
       return generateCheckboxWithLabelWidget(properties);
+    case "label":
+      return generateLabelWidget(properties);
     default:
       return "Container()";
   }
@@ -1047,6 +1049,28 @@ function generateDynamicTableWidget(properties: Record<string, any>): string {
         ),
       ),
     ],
+  )`;
+}
+
+function generateLabelWidget(properties: Record<string, any>): string {
+  const { text = "", fontSize = 14, fontWeight = "normal", color = "#000000", textAlign = "left" } = properties;
+  
+  // Map textAlign to Flutter's TextAlign
+  const textAlignMap: Record<string, string> = {
+    left: "TextAlign.left",
+    center: "TextAlign.center",
+    right: "TextAlign.right"
+  };
+
+  return `
+  Text(
+    '${text}',
+    style: TextStyle(
+      fontSize: ${fontSize.toFixed(1)},
+      fontWeight: ${fontWeight === "bold" ? "FontWeight.bold" : "FontWeight.normal"},
+      color: Color(${hexToArgb(color)}),
+    ),
+    textAlign: ${textAlignMap[textAlign]},
   )`;
 }
 

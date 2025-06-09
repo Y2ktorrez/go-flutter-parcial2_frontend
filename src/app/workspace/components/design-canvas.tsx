@@ -26,6 +26,16 @@ interface DesignCanvasProps {
   onNavigate?: (screenId: string) => void;
 }
 
+// Factor de escala base para mostrar los dispositivos en el canvas
+// Ajustamos la escala base según el tamaño del dispositivo para que se vean proporcionalmente correctos
+const getBaseScale = (deviceWidth: number) => {
+  // Escalar inversamente proporcional al ancho del dispositivo
+  // Los dispositivos más grandes tendrán una escala menor
+  if (deviceWidth <= 360) return 0.8;  // A10, Realme 8
+  if (deviceWidth <= 400) return 0.7;  // Dispositivos medianos
+  return 0.6;  // S22 Ultra
+};
+
 export default function DesignCanvas(props: DesignCanvasProps) {
   const { deviceType, onDeviceChange, currentScreen, onNavigate } = props;
   const {
@@ -62,6 +72,10 @@ export default function DesignCanvas(props: DesignCanvasProps) {
   const currentDevice = devices.find((d) => d.id === deviceType) || devices[0];
   const currentZoom = deviceZooms[deviceType] || 1;
   const currentPosition = devicePositions[deviceType] || { x: 0, y: 0 };
+
+  // Calcular el factor de escala real basado en el dispositivo actual
+  const baseScale = getBaseScale(currentDevice.width);
+  const deviceScale = baseScale * currentZoom;
 
   // Funciones para controlar el zoom
   const handleZoomIn = () => {
@@ -146,27 +160,21 @@ export default function DesignCanvas(props: DesignCanvasProps) {
   const handleDrop = (item: { type: string }, monitor: any) => {
     const offset = monitor.getClientOffset();
     if (offset && onAddElement) {
-      const phoneContainer = document
-        .getElementById("phone-container")
-        ?.getBoundingClientRect();
       const phoneScreen = document
         .getElementById("phone-screen")
         ?.getBoundingClientRect();
 
-      if (phoneContainer && phoneScreen) {
-        // Ajustar las coordenadas según el zoom
-        const x = Math.round(((offset.x - phoneScreen.left) / currentZoom) / 20) * 20;
-        const y = Math.round(((offset.y - phoneScreen.top) / currentZoom) / 20) * 20;
+      if (phoneScreen) {
+        // Ajustar las coordenadas según el zoom y la escala del dispositivo
+        const x = Math.round(((offset.x - phoneScreen.left) / deviceScale) / 20) * 20;
+        const y = Math.round(((offset.y - phoneScreen.top) / deviceScale) / 20) * 20;
 
-        // Only add if within phone screen bounds (ajustado por zoom)
-        const scaledWidth = (phoneScreen.width / currentZoom);
-        const scaledHeight = (phoneScreen.height / currentZoom);
-        
+        // Solo agregar si está dentro de los límites de la pantalla del teléfono
         if (
           x >= 0 &&
-          x <= scaledWidth &&
+          x <= currentDevice.width &&
           y >= 0 &&
-          y <= scaledHeight
+          y <= currentDevice.height
         ) {
           onAddElement(item.type as any, x, y);
         }
@@ -208,12 +216,24 @@ export default function DesignCanvas(props: DesignCanvasProps) {
     }
   };
 
+  // Escalar los elementos según el dispositivo actual
+  const scaleElement = (element: DesignElement) => {
+    return {
+      ...element,
+      // Los elementos mantienen sus posiciones y tamaños relativos al dispositivo
+      // No necesitan escalar aquí porque el canvas ya aplica la escala
+    };
+  };
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-black p-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center">
           <span className="ml-2 rounded-md bg-black px-2 py-1 text-xs font-medium text-white">
             Screen: {currentScreen.name}
+          </span>
+          <span className="ml-2 rounded-md bg-gray-800 px-2 py-1 text-xs font-medium text-gray-300">
+            {currentDevice.width} x {currentDevice.height}px
           </span>
         </div>
         <div className="flex items-center space-x-3">
@@ -274,7 +294,7 @@ export default function DesignCanvas(props: DesignCanvasProps) {
             >
               {devices.map((d) => (
                 <option key={d.id} value={d.id} className="bg-black text-white">
-                  {d.label}
+                  {d.label} ({d.screenSize})
                 </option>
               ))}
             </select>
@@ -292,52 +312,64 @@ export default function DesignCanvas(props: DesignCanvasProps) {
         }}
       >
         <div className="absolute inset-0 flex items-center justify-center">
-          {/* Guías de centro (opcional) */}
+          {/* Guías de centro */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-px h-full bg-gray-600 opacity-40"></div>
-            <div className="absolute w-full h-px bg-gray-600 opacity-40"></div>
+            <div className="w-px h-full bg-gray-600 opacity-20"></div>
+            <div className="absolute w-full h-px bg-gray-600 opacity-20"></div>
           </div>
 
           <div
             id="phone-container"
             className="relative select-none"
             style={{
-              width: `${currentDevice.width + 40}px`,
-              height: `${currentDevice.height + 80}px`,
-              transform: `translate(${currentPosition.x}px, ${currentPosition.y}px) scale(${currentZoom})`,
-              transformOrigin: 'center',
+              width: `${(currentDevice.width + 40) * deviceScale}px`,
+              height: `${(currentDevice.height + 80) * deviceScale}px`,
+              transform: `translate(${currentPosition.x}px, ${currentPosition.y}px)`,
               cursor: isDragging ? 'grabbing' : 'grab',
               transition: isDragging ? 'none' : 'transform 0.1s ease-out',
             }}
             onMouseDown={handleMouseDown}
           >
             {/* Phone frame */}
-            <div className="absolute inset-0 rounded-[40px] bg-sky-500/50 shadow-xl pointer-events-auto"></div>
+            <div 
+              className="absolute inset-0 rounded-[40px] bg-gradient-to-b from-gray-700 to-gray-900 shadow-2xl pointer-events-auto"
+              style={{
+                boxShadow: '0 10px 40px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.1)'
+              }}
+            ></div>
 
             {/* Phone screen */}
             <div
               id="phone-screen"
               ref={combinedRef}
-              className={`absolute inset-[10px] overflow-hidden rounded-[30px] pointer-events-auto ${
+              className={`absolute overflow-hidden pointer-events-auto ${
                 isDarkMode ? "bg-gray-900" : "bg-white"
               } ${isOver ? "bg-blue-50" : ""}`}
               onClick={handleCanvasClick}
               style={{
+                left: '20px',
+                right: '20px',
+                top: '40px',
+                bottom: '40px',
+                borderRadius: '20px',
                 backgroundImage: isDarkMode
                   ? "none"
-                  : "linear-gradient(to right, #ddd 1px, transparent 1px), linear-gradient(to bottom, #ddd 1px, transparent 1px)",
-                backgroundSize: "20px 20px",
+                  : "linear-gradient(to right, #e5e7eb 1px, transparent 1px), linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)",
+                backgroundSize: `${20 * deviceScale}px ${20 * deviceScale}px`,
                 cursor: 'default',
+                transform: `scale(${deviceScale})`,
+                transformOrigin: 'top left',
+                width: `${currentDevice.width}px`,
+                height: `${currentDevice.height}px`,
               }}
               onMouseDown={(e) => e.stopPropagation()} // Evitar que el arrastre se propague desde la pantalla
             >
               <div className="relative h-full w-full">
-                {/* Phone notch/camera holes - Device specific - INSIDE screen */}
+                {/* Phone notch/camera holes - Device specific */}
                 
-                {/* Samsung Galaxy A10 - Teardrop notch (forma de gota) */}
+                {/* Samsung Galaxy A10 - Teardrop notch */}
                 {(deviceType as string) === "samsungA10" && (
                   <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2">
-                    {/* Notch en forma de gota - más ancho arriba, puntiagudo abajo */}
                     <div 
                       className="bg-black"
                       style={{
@@ -355,7 +387,7 @@ export default function DesignCanvas(props: DesignCanvasProps) {
                   <div className="absolute left-6 top-3 z-10 h-3 w-3 rounded-full bg-black"></div>
                 )}
                 
-                {/* Samsung Galaxy S22 Ultra - Punch hole camera (centrado) */}
+                {/* Samsung Galaxy S22 Ultra - Punch hole camera (centered) */}
                 {(deviceType as string) === "samsungS22Ultra" && (
                   <div className="absolute left-1/2 top-3 z-10 h-3 w-3 -translate-x-1/2 rounded-full bg-black"></div>
                 )}
@@ -371,21 +403,27 @@ export default function DesignCanvas(props: DesignCanvasProps) {
                     }
                   >
                     <CanvasElement
-                      key={element.id}
-                      element={element}
+                      element={scaleElement(element)}
                       isSelected={selectedElement?.id === element.id}
                       onSelect={() => onSelectElement(element)}
                       onUpdate={(updates) => onUpdateElement(element.id, updates)}
                       onRemove={() => onRemoveElement(element.id)}
                       isDarkMode={isDarkMode}
+                      deviceBounds={{ width: currentDevice.width, height: currentDevice.height }}
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Home indicator (for modern phones) */}
-            <div className="absolute bottom-3 left-1/2 h-1 w-32 -translate-x-1/2 rounded-full bg-gray-700"></div>
+            {/* Home indicator (scaled) */}
+            <div 
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-gray-400"
+              style={{
+                width: `${100 * deviceScale}px`,
+                height: `${4 * deviceScale}px`,
+              }}
+            ></div>
           </div>
         </div>
       </div>

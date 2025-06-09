@@ -422,13 +422,22 @@ function generateButtonWidget(properties: Record<string, any>): string {
       foregroundColor: Color(${hexToArgb(color)}),
       side: BorderSide(color: Color(${hexToArgb(color)})),
       shape: ${rounded ? "const StadiumBorder()" : "RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))"},
-      padding: EdgeInsets.all(${padding.toFixed(1)}),
+      padding: EdgeInsets.symmetric(horizontal: ${Math.max(padding * 0.8, 8).toFixed(1)}, vertical: ${Math.max(padding * 0.6, 4).toFixed(1)}),
+      minimumSize: Size.zero, // Permite que el botón sea más pequeño
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce el área de toque
     ),
-    child: Text(
-      '${text}',
-      style: TextStyle(
-        color: Color(${hexToArgb(color)}),
-        fontWeight: FontWeight.w500,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        '${text}',
+        style: TextStyle(
+          color: Color(${hexToArgb(color)}),
+          fontWeight: FontWeight.w500,
+          fontSize: 14, // Tamaño de fuente más controlado
+        ),
+        textAlign: TextAlign.center,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     ),
   )`;
@@ -440,14 +449,102 @@ function generateButtonWidget(properties: Record<string, any>): string {
       backgroundColor: Color(${hexToArgb(color)}),
       foregroundColor: Color(${hexToArgb(textColor)}),
       shape: ${rounded ? "const StadiumBorder()" : "RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))"},
-      padding: EdgeInsets.all(${padding.toFixed(1)}),
+      padding: EdgeInsets.symmetric(horizontal: ${Math.max(padding * 0.8, 8).toFixed(1)}, vertical: ${Math.max(padding * 0.6, 4).toFixed(1)}),
       elevation: 2,
+      minimumSize: Size.zero, // Permite que el botón sea más pequeño
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce el área de toque
     ),
-    child: Text(
-      '${text}',
-      style: TextStyle(
-        fontWeight: FontWeight.w600,
-        fontSize: 16,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        '${text}',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14, // Tamaño de fuente más controlado
+        ),
+        textAlign: TextAlign.center,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+    ),
+  )`;
+  }
+}
+
+// Función alternativa si necesitas más control sobre el posicionamiento
+function generateButtonWidgetAlternative(properties: Record<string, any>): string {
+  const { text, variant, rounded, color, padding } = properties;
+  const textColor = getContrastingTextColor(color);
+
+  if (variant === "outline") {
+    return `
+  Container(
+    width: double.infinity,
+    height: double.infinity,
+    child: OutlinedButton(
+      onPressed: () {},
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Color(${hexToArgb(color)}),
+        side: BorderSide(color: Color(${hexToArgb(color)})),
+        shape: ${rounded ? "const StadiumBorder()" : "RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))"},
+        padding: EdgeInsets.zero, // Sin padding interno
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '${text}',
+            style: TextStyle(
+              color: Color(${hexToArgb(color)}),
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+      ),
+    ),
+  )`;
+  } else {
+    return `
+  Container(
+    width: double.infinity,
+    height: double.infinity,
+    child: ElevatedButton(
+      onPressed: () {},
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Color(${hexToArgb(color)}),
+        foregroundColor: Color(${hexToArgb(textColor)}),
+        shape: ${rounded ? "const StadiumBorder()" : "RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))"},
+        padding: EdgeInsets.zero, // Sin padding interno
+        elevation: 2,
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '${text}',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
       ),
     ),
   )`;

@@ -1,19 +1,33 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
+import { wsClient } from "@/lib/websocket";
+import { RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import ComponentsSidebar from "./components-sidebar";
-import DesignCanvas from "./design-canvas";
-import PropertiesPanel from "./properties-panel";
-import ScreensManager from "./screens-manager";
-import { RotateCcw, RotateCw, Trash2 } from "lucide-react";
-import { DownloadZipButton } from "./export-flutter";
-import IaExample from "./ia/ia-example";
-import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
-import AuthDropdown from "./auth-dropdown";
+import { DownloadZipButton } from "../../components/export-flutter";
+import IaExample from "../../components/ia/ia-example";
+import ScreensManager from "../../components/screens-manager";
+import AuthDropdown from "../../components/auth-dropdown";
+import ComponentsSidebar from "../../components/components-sidebar";
+import DesignCanvas from "../../components/design-canvas";
+import PropertiesPanel from "../../components/properties-panel";
+import { useParams } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 
-export default function DesignerWorkspace() {
+interface CollaboratorInfo {
+  userId: string;
+  username: string;
+  color: string;
+  cursor?: { x: number; y: number };
+}
+
+export default function DesignerWebsocket() {
+  const params = useParams();
+  const projectId = params.projectID as string;
+  const { user } = useAuth();
+
   const {
     screens,
     currentScreenId,
@@ -39,7 +53,7 @@ export default function DesignerWorkspace() {
     renameScreen,
     deleteScreen,
     navigateToScreen,
-    currentScreen,
+    currentScreen
   } = useDesignerWorkspace();
 
   // Actualizar la ref cuando cambia currentScreenId
@@ -100,6 +114,26 @@ export default function DesignerWorkspace() {
     });
   }, [screens]);
 
+  useEffect(() => {
+    const connectToWebSocket = async () => {
+      if (projectId && user?.id && user?.name) {
+        console.log("🔗 Conectando al WebSocket con proyecto:", projectId);
+        try {
+          await wsClient.connect(projectId, user.id, user.name);
+          console.log("✅ WebSocket conectado:", wsClient.isConnected);
+        } catch (error) {
+          console.error("❌ Error conectando WebSocket:", error);
+        }
+      }
+    };
+
+    connectToWebSocket();
+
+    return () => {
+      wsClient.leaveRoom();
+    };
+  }, [projectId, user]);
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex flex-1 flex-col overflow-hidden mt-2 bg-transparent">
@@ -122,7 +156,7 @@ export default function DesignerWorkspace() {
               !history[currentScreenId] ||
               !historyIndex[currentScreenId] ||
               historyIndex[currentScreenId] ===
-                history[currentScreenId].length - 1
+              history[currentScreenId].length - 1
             }
             className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
             title="Redo"

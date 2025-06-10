@@ -8,7 +8,7 @@ import {
 } from "@/lib/properties";
 import { ComponentType, DesignElement, DeviceType, Screen } from "@/lib/types";
 import { wsClient } from "@/lib/websocket";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useSocket } from "./use-socket";
 
 export function useDesignerWorkspace() {
@@ -24,6 +24,7 @@ export function useDesignerWorkspace() {
   const [selectedElement, setSelectedElement] = useState<DesignElement | null>(
     null
   );
+
   const [history, setHistory] = useState<Record<string, DesignElement[][]>>({
     "screen-1": [[]],
   });
@@ -158,7 +159,9 @@ export function useDesignerWorkspace() {
 
       // Seleccionar el nuevo elemento
       setSelectedElement(newElement);
-      // wsClient.emit("ELEMENT_ADD", { screenId, element: newElement });
+      console.log("Conectado :", wsClient.isConnected);
+      if (wsClient.isConnected)
+        wsClient.emit("ELEMENT_ADD", { screenId, element: newElement });
 
       console.log("➕ FIN AGREGAR ELEMENTO");
     },
@@ -213,8 +216,8 @@ export function useDesignerWorkspace() {
         return prevSelected;
       });
 
-      // dentro de updateElement, justo después de setSelectedElement(...)
-      wsClient.emit("ELEMENT_UPDATE", { screenId, id, updates });
+      if (wsClient.isConnected)
+        wsClient.emit("ELEMENT_UPDATE", { screenId, id, updates });
     },
     [addToHistory]
   );
@@ -256,7 +259,6 @@ export function useDesignerWorkspace() {
           addToHistory(updatedElements);
         }, 0);
 
-        wsClient.emit("ELEMENT_REMOVE", { screenId, id });
 
         return updatedScreens;
       });
@@ -268,6 +270,9 @@ export function useDesignerWorkspace() {
         }
         return prevSelected;
       });
+
+      if (wsClient.isConnected)
+        wsClient.emit("ELEMENT_REMOVE", { screenId, id });
     },
     [addToHistory]
   );
@@ -314,6 +319,11 @@ export function useDesignerWorkspace() {
       });
 
       setSelectedElement(null);
+      if (wsClient.isConnected)
+        wsClient.emit("SCREEN_UNDO", {
+          screenId: currentScreenIdRef.current,
+          elements: elementsToRestore
+        });
     }
   }, [history, historyIndex]);
 
@@ -359,6 +369,11 @@ export function useDesignerWorkspace() {
       });
 
       setSelectedElement(null);
+      if (wsClient.isConnected)
+        wsClient.emit("SCREEN_REDO", {
+          screenId: currentScreenIdRef.current,
+          elements: elementsToRestore
+        });
     }
   }, [history, historyIndex]);
 
@@ -399,6 +414,9 @@ export function useDesignerWorkspace() {
 
     setSelectedElement(null);
     addToHistory([]);
+
+    if (wsClient.isConnected)
+      wsClient.emit("SCREEN_CLEAR", { screenId: currentScreenIdRef.current });
   }, [addToHistory]);
 
   // Screen management functions
@@ -429,6 +447,11 @@ export function useDesignerWorkspace() {
 
     // Limpiar la selección
     setSelectedElement(null);
+
+    if (wsClient.isConnected)
+      wsClient.emit("SCREEN_ADD", {
+        screen: { id: newScreenId, name, elements: [] }
+      });
   }, []);
 
   // Screen management functions
@@ -458,9 +481,8 @@ export function useDesignerWorkspace() {
           children:
             element.children?.map((child) => ({
               ...child,
-              id: `child-${newScreenId}-${
-                child.id || Date.now()
-              }-${Math.random().toString(36).substr(2, 4)}`,
+              id: `child-${newScreenId}-${child.id || Date.now()
+                }-${Math.random().toString(36).substr(2, 4)}`,
             })) || [],
         })),
       };
@@ -495,6 +517,9 @@ export function useDesignerWorkspace() {
         screen.id === id ? { ...screen, name } : screen
       )
     );
+
+    if (wsClient.isConnected)
+      wsClient.emit("SCREEN_RENAME", { id, name });
   }, []);
 
   const deleteScreen = useCallback(
@@ -521,6 +546,9 @@ export function useDesignerWorkspace() {
         delete newIndices[id];
         return newIndices;
       });
+
+      if (wsClient.isConnected)
+        wsClient.emit("SCREEN_DELETE", { id });
     },
     [screens, currentScreenId]
   );
@@ -573,33 +601,32 @@ export function useDesignerWorkspace() {
     ({ screenId, element }: { screenId: string; element: DesignElement }) => {
       console.log("🆕 ELEMENTO AÑADIDO:", screenId, element.id);
       if (screenId !== currentScreenIdRef.current) return;
-    addElementLocal(element);
+      addElementLocal(element);
     }
   );
 
   /* helper: actual mutator, NO broadcast ------------------------ */
-const addElementLocal = useCallback(
-  (element: DesignElement) => {
-    const screenId = currentScreenIdRef.current;
+  const addElementLocal = useCallback(
+    (element: DesignElement) => {
+      const screenId = currentScreenIdRef.current;
 
-    setScreens((prev) => {
-      const i = prev.findIndex((s) => s.id === screenId);
-      if (i === -1) return prev;
+      setScreens((prev) => {
+        const i = prev.findIndex((s) => s.id === screenId);
+        if (i === -1) return prev;
 
-      /* evita duplicar si llega dos veces */
-      if (prev[i].elements.some((el) => el.id === element.id)) return prev;
+        /* evita duplicar si llega dos veces */
+        if (prev[i].elements.some((el) => el.id === element.id)) return prev;
 
-      const next = [...prev];
-      next[i] = { ...next[i], elements: [...next[i].elements, element] };
-      return next;
-    });
+        const next = [...prev];
+        next[i] = { ...next[i], elements: [...next[i].elements, element] };
+        return next;
+      });
 
-    setSelectedElement(element);
-    addToHistory([...getCurrentScreenElements(), element]);
-  },
-  [addToHistory, getCurrentScreenElements]
-);
-
+      setSelectedElement(element);
+      addToHistory([...getCurrentScreenElements(), element]);
+    },
+    [addToHistory, getCurrentScreenElements]
+  );
 
   useSocket(
     "ELEMENT_UPDATE",
@@ -613,40 +640,230 @@ const addElementLocal = useCallback(
       updates: Partial<DesignElement>;
     }) => {
       if (screenId !== currentScreenIdRef.current) return;
+      console.log("🛠️ ELEMENTO ACTUALIZADO:", screenId, id, updates)
+      updateElementLocal(id, updates);
+    }
+  );
+
+  const updateElementLocal = useCallback(
+    (id: string, updates: Partial<DesignElement>) => {
+      const screenId = currentScreenIdRef.current;
+
       setScreens((prev) => {
         const i = prev.findIndex((s) => s.id === screenId);
         if (i === -1) return prev;
+
         const next = [...prev];
-        next[i] = {
-          ...next[i],
-          elements: next[i].elements.map((el) =>
-            el.id === id ? { ...el, ...updates } : el
-          ),
-        };
+        const updatedElements = next[i].elements.map((el) =>
+          el.id === id ? { ...el, ...updates } : el
+        );
+
+        next[i] = { ...next[i], elements: updatedElements };
+
+        // Agregar al historial
+        setTimeout(() => {
+          addToHistory(updatedElements);
+        }, 0);
+
         return next;
       });
-    }
+
+      // Update selected element if it's the one being updated
+      setSelectedElement((prevSelected) => {
+        if (prevSelected && prevSelected.id === id) {
+          return { ...prevSelected, ...updates };
+        }
+        return prevSelected;
+      });
+    },
+    [addToHistory]
   );
 
   useSocket(
     "ELEMENT_REMOVE",
     ({ screenId, id }: { screenId: string; id: string }) => {
       if (screenId !== currentScreenIdRef.current) return;
-      setScreens((prev) => {
-        const i = prev.findIndex((s) => s.id === screenId);
-        if (i === -1) return prev;
-        const next = [...prev];
-        next[i] = {
-          ...next[i],
-          elements: next[i].elements.filter((el) => el.id !== id),
-        };
-        return next;
-      });
-      setSelectedElement((prev) => (prev && prev.id === id ? null : prev));
+      console.log("🗑️ ELEMENTO ELIMINADO WS:", screenId, id);
+      removeElementLocal(id);
     }
   );
 
-  
+  const removeElementLocal = useCallback(
+    (id: string) => {
+      const screenId = currentScreenIdRef.current;
+
+      setScreens((prev) => {
+        const i = prev.findIndex((s) => s.id === screenId);
+        if (i === -1) return prev;
+
+        const next = [...prev];
+        const updatedElements = next[i].elements.filter((el) => el.id !== id);
+
+        next[i] = { ...next[i], elements: updatedElements };
+
+        // Agregar al historial
+        setTimeout(() => {
+          addToHistory(updatedElements);
+        }, 0);
+
+        return next;
+      });
+
+      // Clear selection if the removed element was selected
+      setSelectedElement((prev) => (prev && prev.id === id ? null : prev));
+    },
+    [addToHistory]
+  );
+
+  useSocket(
+    "SCREEN_UNDO",
+    ({ screenId, elements }: { screenId: string; elements: DesignElement[] }) => {
+      console.log("↩️ UNDO WS:", screenId);
+      undoLocal(screenId, elements);
+    }
+  );
+
+  const undoLocal = useCallback((screenId: string, elements: DesignElement[]) => {
+    setScreens((prevScreens) => {
+      const currentScreenIndex = prevScreens.findIndex((s) => s.id === screenId);
+      if (currentScreenIndex === -1) return prevScreens;
+
+      const updatedScreens = [...prevScreens];
+      const currentScreen = { ...updatedScreens[currentScreenIndex] };
+      currentScreen.elements = [...elements];
+      updatedScreens[currentScreenIndex] = currentScreen;
+
+      return updatedScreens;
+    });
+
+    setSelectedElement(null);
+  }, []);
+
+  useSocket(
+    "SCREEN_REDO",
+    ({ screenId, elements }: { screenId: string; elements: DesignElement[] }) => {
+      console.log("↪️ REDO WS:", screenId);
+      redoLocal(screenId, elements);
+    }
+  );
+
+  const redoLocal = useCallback((screenId: string, elements: DesignElement[]) => {
+    setScreens((prevScreens) => {
+      const currentScreenIndex = prevScreens.findIndex((s) => s.id === screenId);
+      if (currentScreenIndex === -1) return prevScreens;
+
+      const updatedScreens = [...prevScreens];
+      const currentScreen = { ...updatedScreens[currentScreenIndex] };
+      currentScreen.elements = [...elements];
+      updatedScreens[currentScreenIndex] = currentScreen;
+
+      return updatedScreens;
+    });
+
+    setSelectedElement(null);
+  }, []);
+
+  useSocket(
+    "SCREEN_CLEAR",
+    ({ screenId }: { screenId: string }) => {
+      console.log("🧹 CLEAR CANVAS WS:", screenId);
+      clearCanvasLocal(screenId);
+    }
+  );
+
+  const clearCanvasLocal = useCallback((screenId: string) => {
+    setScreens((prevScreens) => {
+      const currentScreenIndex = prevScreens.findIndex((s) => s.id === screenId);
+      if (currentScreenIndex === -1) return prevScreens;
+
+      const updatedScreens = [...prevScreens];
+      const currentScreen = { ...updatedScreens[currentScreenIndex] };
+      currentScreen.elements = [];
+      updatedScreens[currentScreenIndex] = currentScreen;
+
+      return updatedScreens;
+    });
+
+    setSelectedElement(null);
+  }, []);
+
+  useSocket(
+    "SCREEN_ADD",
+    ({ screen }: { screen: Screen }) => {
+      console.log("🆕 SCREEN ADD WS:", screen.id, screen.name);
+      addScreenLocal(screen);
+    }
+  );
+
+  const addScreenLocal = useCallback((screen: Screen) => {
+    // Evitar duplicados
+    setScreens((prevScreens) => {
+      if (prevScreens.some(s => s.id === screen.id)) return prevScreens;
+      return [...prevScreens, screen];
+    });
+
+    // Inicializar historial solo si no existe
+    setHistory((prevHistory) => {
+      if (prevHistory[screen.id]) return prevHistory;
+      return {
+        ...prevHistory,
+        [screen.id]: [screen.elements],
+      };
+    });
+
+    setHistoryIndex((prevIndices) => {
+      if (prevIndices[screen.id] !== undefined) return prevIndices;
+      return {
+        ...prevIndices,
+        [screen.id]: 0,
+      };
+    });
+  }, []);
+
+  useSocket(
+    "SCREEN_RENAME",
+    ({ id, name }: { id: string; name: string }) => {
+      console.log("✏️ SCREEN RENAME WS:", id, name);
+      renameScreenLocal(id, name);
+    }
+  );
+
+  const renameScreenLocal = useCallback((id: string, name: string) => {
+    setScreens((prevScreens) =>
+      prevScreens.map((screen) =>
+        screen.id === id ? { ...screen, name } : screen
+      )
+    );
+  }, []);
+
+  useSocket(
+    "SCREEN_DELETE",
+    ({ id }: { id: string }) => {
+      console.log("🗑️ SCREEN DELETE WS:", id);
+      deleteScreenLocal(id);
+    }
+  );
+
+  const deleteScreenLocal = useCallback((id: string) => {
+    setScreens((prevScreens) => {
+      const filtered = prevScreens.filter((screen) => screen.id !== id);
+      return filtered.length > 0 ? filtered : prevScreens; // No eliminar si es la última
+    });
+
+    // Limpiar historial
+    setHistory((prevHistory) => {
+      const newHistory = { ...prevHistory };
+      delete newHistory[id];
+      return newHistory;
+    });
+
+    setHistoryIndex((prevIndices) => {
+      const newIndices = { ...prevIndices };
+      delete newIndices[id];
+      return newIndices;
+    });
+  }, []);
+
 
   return {
     screens,

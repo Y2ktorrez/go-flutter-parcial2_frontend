@@ -70,7 +70,7 @@ class WSClient {
       username,
     });
 
-    const url = `ws://localhost:8080/ws/connect?${params.toString()}`;
+    const url = `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/connect?${params.toString()}`;
 
     this.connectionPromise = new Promise((resolve, reject) => {
       this.ws = new WebSocket(url);

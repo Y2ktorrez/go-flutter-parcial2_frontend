@@ -60,7 +60,7 @@ export default function ScreensManager({
     if (screens.length > 1) {
       const index = screens.findIndex(s => s.id === id)
       onDeleteScreen(id)
-      
+
       // Ajustar el índice de desplazamiento si es necesario
       if (scrollIndex >= screens.length - 1) {
         setScrollIndex(Math.max(0, scrollIndex - 1))
@@ -75,7 +75,7 @@ export default function ScreensManager({
 
   return (
     <div className="border-b border-transparent p-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">        
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2 flex-grow">
             <input
@@ -96,33 +96,31 @@ export default function ScreensManager({
               Add Screen
             </button>
           </div>
-          
+
           <div className="flex items-center">
             {/* Botón de flecha izquierda */}
             <button
               onClick={() => setScrollIndex(prev => Math.max(0, prev - 1))}
               disabled={!canScrollLeft}
-              className={`p-1 rounded-md ${
-                canScrollLeft 
-                  ? "text-gray-600 hover:bg-gray-100" 
-                  : "text-gray-300 cursor-not-allowed"
-              }`}
+              className={`p-1 rounded-md ${canScrollLeft
+                ? "text-gray-600 hover:bg-gray-100"
+                : "text-gray-300 cursor-not-allowed"
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            
+
             {/* Contenedor de pantallas visibles */}
             <div className="flex flex-nowrap gap-2 mx-1">
               {visibleScreens.map((screen) => (
                 <div
                   key={screen.id}
-                  className={`group relative flex items-center rounded-md border px-3 py-1 ${
-                    screen.id === currentScreenId
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
+                  className={`group relative flex items-center rounded-md border px-3 py-1 min-w-0 ${screen.id === currentScreenId
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-300 hover:border-gray-400"
+                    }`}
                 >
                   {editingScreenId === screen.id ? (
                     <div className="flex items-center">
@@ -130,7 +128,8 @@ export default function ScreensManager({
                         type="text"
                         value={editingScreenName}
                         onChange={(e) => setEditingScreenName(e.target.value)}
-                        className="w-24 rounded border-none bg-transparent p-0 text-sm focus:outline-none"
+                        className="w-20 rounded border-none bg-transparent p-0 text-sm focus:outline-none"
+                        maxLength={15}
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveScreenName()
@@ -172,7 +171,11 @@ export default function ScreensManager({
                     </div>
                   ) : (
                     <>
-                      <span className="cursor-pointer text-sm" onClick={() => onSelectScreen(screen.id)}>
+                      <span
+                        className="cursor-pointer text-sm max-w-[100px] truncate block"
+                        onClick={() => onSelectScreen(screen.id)}
+                        title={screen.name}
+                      >
                         {screen.name}
                       </span>
                       <div className="ml-2 hidden space-x-1 group-hover:flex">
@@ -228,16 +231,15 @@ export default function ScreensManager({
                 </div>
               ))}
             </div>
-            
+
             {/* Botón de flecha derecha */}
             <button
               onClick={() => setScrollIndex(prev => prev + 1)}
               disabled={!canScrollRight}
-              className={`p-1 rounded-md ${
-                canScrollRight 
-                  ? "text-gray-600 hover:bg-gray-100" 
-                  : "text-gray-300 cursor-not-allowed"
-              }`}
+              className={`p-1 rounded-md ${canScrollRight
+                ? "text-gray-600 hover:bg-gray-100"
+                : "text-gray-300 cursor-not-allowed"
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

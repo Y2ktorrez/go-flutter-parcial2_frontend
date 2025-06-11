@@ -8,8 +8,6 @@ import DesignCanvas from "./design-canvas";
 import PropertiesPanel from "./properties-panel";
 import ScreensManager from "./screens-manager";
 import { RotateCcw, RotateCw, Trash2 } from "lucide-react";
-import { DownloadZipButton } from "./export-flutter";
-import IaExample from "./ia/ia-example";
 import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
 import AuthDropdown from "./auth-dropdown";
 
@@ -122,7 +120,7 @@ export default function DesignerWorkspace() {
               !history[currentScreenId] ||
               !historyIndex[currentScreenId] ||
               historyIndex[currentScreenId] ===
-                history[currentScreenId].length - 1
+              history[currentScreenId].length - 1
             }
             className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
             title="Redo"
@@ -141,9 +139,6 @@ export default function DesignerWorkspace() {
             Elements: {currentScreen ? currentScreen.elements.length : 0}
           </span>
 
-          <DownloadZipButton flutterCode={generateCode()} />
-          <IaExample addScreenIA={addScreenIA} />
-
           <ScreensManager
             screens={screens}
             currentScreenId={currentScreenId}
@@ -153,7 +148,7 @@ export default function DesignerWorkspace() {
             onSelectScreen={setCurrentScreenId}
           />
 
-          <AuthDropdown />
+          <AuthDropdown flutterCode={generateCode()} addScreenIA={addScreenIA} />
         </div>
         <div className="flex flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto">

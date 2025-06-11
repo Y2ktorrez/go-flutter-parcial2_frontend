@@ -3,11 +3,9 @@
 import { useDesignerWorkspace } from "@/hooks/use-designer-workspace";
 import { wsClient } from "@/lib/websocket";
 import { RotateCcw, RotateCw, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { DownloadZipButton } from "../../components/export-flutter";
-import IaExample from "../../components/ia/ia-example";
 import ScreensManager from "../../components/screens-manager";
 import AuthDropdown from "../../components/auth-dropdown";
 import ComponentsSidebar from "../../components/components-sidebar";
@@ -15,13 +13,6 @@ import DesignCanvas from "../../components/design-canvas";
 import PropertiesPanel from "../../components/properties-panel";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-
-interface CollaboratorInfo {
-  userId: string;
-  username: string;
-  color: string;
-  cursor?: { x: number; y: number };
-}
 
 export default function DesignerWebsocket() {
   const params = useParams();
@@ -175,9 +166,6 @@ export default function DesignerWebsocket() {
             Elements: {currentScreen ? currentScreen.elements.length : 0}
           </span>
 
-          <DownloadZipButton flutterCode={generateCode()} />
-          <IaExample addScreenIA={addScreenIA} />
-
           <ScreensManager
             screens={screens}
             currentScreenId={currentScreenId}
@@ -187,7 +175,7 @@ export default function DesignerWebsocket() {
             onSelectScreen={setCurrentScreenId}
           />
 
-          <AuthDropdown />
+          <AuthDropdown flutterCode={generateCode()} addScreenIA={addScreenIA} />
         </div>
         <div className="flex flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto">

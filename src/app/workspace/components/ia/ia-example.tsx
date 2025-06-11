@@ -2,11 +2,14 @@ import { DesignElement } from "@/lib/types";
 import { Button } from "../ui/button";
 import { useState, useRef } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Sparkles } from "lucide-react";
 
 type DesignElementWithoutId = Omit<DesignElement, 'id'>;
 
 interface Example {
   addScreenIA: (name: string, elements?: DesignElementWithoutId[]) => string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 // Función para extraer JSON de un string
@@ -43,23 +46,13 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string;
   });
 }
 
-export default function IaDesignModal({ addScreenIA }: Example) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example) {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [textPrompt, setTextPrompt] = useState("");
   const [activeTab, setActiveTab] = useState<'image' | 'text'>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    clearAll();
-  };
 
   const clearAll = () => {
     setSelectedImage(null);
@@ -72,6 +65,11 @@ export default function IaDesignModal({ addScreenIA }: Example) {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleClose = () => {
+    onClose();
+    clearAll();
   };
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,7 +88,7 @@ export default function IaDesignModal({ addScreenIA }: Example) {
       }
 
       setSelectedImage(file);
-      
+
       // Crear preview
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
@@ -126,13 +124,13 @@ export default function IaDesignModal({ addScreenIA }: Example) {
     try {
       // Analizar la imagen y generar elementos
       const elements = await analyzeImageAndGenerate(selectedImage);
-      
+
       // Crear pantalla con los elementos generados
       const screenName = `Pantalla de ${selectedImage.name.split('.')[0]}`;
       addScreenIA(screenName, elements as Omit<DesignElement, 'id'>[]);
-      
+
       // Cerrar modal y limpiar
-      closeModal();
+      handleClose();
     } catch (error) {
       console.error("Error generando diseño desde imagen:", error);
       alert("Error al procesar la imagen. Inténtalo de nuevo.");
@@ -151,9 +149,9 @@ export default function IaDesignModal({ addScreenIA }: Example) {
     try {
       const elements = await fetchIAComponents(textPrompt);
       addScreenIA("Pantalla generada por IA", elements as Omit<DesignElement, 'id'>[]);
-      
+
       // Cerrar modal y limpiar
-      closeModal();
+      handleClose();
     } catch (error) {
       console.error("Error generando diseño:", error);
       alert("Error al generar el diseño. Inténtalo de nuevo.");
@@ -329,16 +327,16 @@ export default function IaDesignModal({ addScreenIA }: Example) {
     return response.map((element: any) => {
       // Eliminar children si existen
       const { children, ...cleanElement } = element;
-      
+
       // Validar coordenadas
       if (cleanElement.x < 0 || cleanElement.x > 360) cleanElement.x = 20;
       if (cleanElement.y < 0 || cleanElement.y > 640) cleanElement.y = 30;
-      
+
       // Asegurar propiedades mínimas
       if (!cleanElement.properties) {
         cleanElement.properties = {};
       }
-      
+
       // Agregar propiedades críticas faltantes
       switch (cleanElement.type) {
         case "container":
@@ -349,7 +347,7 @@ export default function IaDesignModal({ addScreenIA }: Example) {
             cleanElement.properties.color = "#F0F0F0";
           }
           break;
-          
+
         case "button":
           if (!("padding" in cleanElement.properties)) {
             cleanElement.properties.padding = 16;
@@ -358,7 +356,7 @@ export default function IaDesignModal({ addScreenIA }: Example) {
             cleanElement.properties.color = "#2196F3";
           }
           break;
-          
+
         case "textField":
         case "inputWithLabel":
           if (!("padding" in cleanElement.properties)) {
@@ -366,200 +364,184 @@ export default function IaDesignModal({ addScreenIA }: Example) {
           }
           break;
       }
-      
+
       // Convertir propiedades críticas a tipos correctos
       if ("padding" in cleanElement.properties) {
         cleanElement.properties.padding = Number(cleanElement.properties.padding);
       }
-      
+
       if ("fontSize" in cleanElement.properties) {
         cleanElement.properties.fontSize = Number(cleanElement.properties.fontSize);
       }
-      
+
       return cleanElement;
     });
   };
-  
+
+  if (!isOpen) return null;
+
   return (
-    <>
-      {/* Botón para abrir el modal */}
-      <div className="p-4">
-        <Button
-          onClick={openModal}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
-        >
-          ✨ Diseñar con IA
-        </Button>
-      </div>
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Header del modal */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">
+            ✨ Generar Diseño con IA
+          </h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-200 text-2xl transition-colors"
+            disabled={loading}
+          >
+            ×
+          </button>
+        </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            {/* Header del modal */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold text-white">
-                ✨ Generar Diseño con IA
-              </h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-200 text-2xl transition-colors"
-                disabled={loading}
-              >
-                ×
-              </button>
-            </div>
+        {/* Tabs */}
+        <div className="flex border-b border-gray-700">
+          <button
+            onClick={() => setActiveTab('image')}
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${activeTab === 'image'
+              ? 'border-b-2 border-purple-500 text-purple-400 bg-purple-500/10'
+              : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+              }`}
+            disabled={loading}
+          >
+            🖼️ Desde Imagen
+          </button>
+          <button
+            onClick={() => setActiveTab('text')}
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${activeTab === 'text'
+              ? 'border-b-2 border-blue-500 text-blue-400 bg-blue-500/10'
+              : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+              }`}
+            disabled={loading}
+          >
+            💭 Desde Texto
+          </button>
+        </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-700">
-              <button
-                onClick={() => setActiveTab('image')}
-                className={`flex-1 py-3 px-4 text-center font-medium transition-all ${
-                  activeTab === 'image'
-                    ? 'border-b-2 border-purple-500 text-purple-400 bg-purple-500/10'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                }`}
-                disabled={loading}
-              >
-                🖼️ Desde Imagen
-              </button>
-              <button
-                onClick={() => setActiveTab('text')}
-                className={`flex-1 py-3 px-4 text-center font-medium transition-all ${
-                  activeTab === 'text'
-                    ? 'border-b-2 border-blue-500 text-blue-400 bg-blue-500/10'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-                }`}
-                disabled={loading}
-              >
-                💭 Desde Texto
-              </button>
-            </div>
-
-            {/* Contenido del modal */}
-            <div className="p-6">
-              {activeTab === 'image' ? (
-                <div className="space-y-4">
-                  {/* Sección de carga de imagen */}
-                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 bg-gray-800/50">
-                    <div className="text-center">
-                      <div className="mb-4">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <div className="flex text-sm text-gray-300">
-                        <label htmlFor="file-upload" className="relative cursor-pointer bg-gray-800 rounded-md font-medium text-purple-400 hover:text-purple-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500 focus-within:ring-offset-gray-900 px-2 py-1">
-                          <span>Sube una imagen</span>
-                          <input
-                            ref={fileInputRef}
-                            id="file-upload"
-                            name="file-upload"
-                            type="file"
-                            className="sr-only"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            disabled={loading}
-                          />
-                        </label>
-                        <p className="pl-1">o arrastra y suelta</p>
-                      </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, WebP hasta 10MB</p>
-                    </div>
+        {/* Contenido del modal */}
+        <div className="p-6">
+          {activeTab === 'image' ? (
+            <div className="space-y-4">
+              {/* Sección de carga de imagen */}
+              <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 bg-gray-800/50">
+                <div className="text-center">
+                  <div className="mb-4">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
-
-                  {/* Preview de la imagen seleccionada */}
-                  {previewUrl && (
-                    <div className="relative">
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview" 
-                        className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-md"
-                      />
-                      <button
-                        onClick={clearImage}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                  <div className="flex text-sm text-gray-300">
+                    <label htmlFor="file-upload" className="relative cursor-pointer bg-gray-800 rounded-md font-medium text-purple-400 hover:text-purple-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500 focus-within:ring-offset-gray-900 px-2 py-1">
+                      <span>Sube una imagen</span>
+                      <input
+                        ref={fileInputRef}
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        onChange={handleImageSelect}
                         disabled={loading}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Información adicional */}
-                  <div className="text-sm text-gray-300 bg-purple-500/10 border border-purple-500/20 p-3 rounded-lg">
-                    <p className="font-medium mb-1 text-purple-400">💡 Consejos para mejores resultados:</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      <li>Sube mockups, sketches o capturas de pantalla</li>
-                      <li>Las imágenes con texto claro funcionan mejor</li>
-                      <li>Se analizará la estructura visual y el texto presente</li>
-                    </ul>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Campo de texto para el prompt */}
-                  <div>
-                    <label htmlFor="prompt" className="block text-sm font-medium text-gray-300 mb-2">
-                      Describe la pantalla que quieres crear:
+                      />
                     </label>
-                    <textarea
-                      id="prompt"
-                      value={textPrompt}
-                      onChange={(e) => setTextPrompt(e.target.value)}
-                      placeholder="Ej: Pantalla de perfil de usuario con avatar, información básica, formulario de edición y botones de acción..."
-                      className="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-white placeholder-gray-400"
-                      disabled={loading}
-                    />
+                    <p className="pl-1">o arrastra y suelta</p>
                   </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, WebP hasta 10MB</p>
+                </div>
+              </div>
 
-                  {/* Información adicional */}
-                  <div className="text-sm text-gray-300 bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
-                    <p className="font-medium mb-1 text-blue-400">💡 Consejos para mejores resultados:</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      <li>Sé específico con los elementos que necesitas</li>
-                      <li>Menciona el tipo de pantalla (login, perfil, lista, etc.)</li>
-                      <li>Incluye detalles sobre colores o estilos si los tienes</li>
-                    </ul>
-                  </div>
+              {/* Preview de la imagen seleccionada */}
+              {previewUrl && (
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-md"
+                  />
+                  <button
+                    onClick={clearImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                    disabled={loading}
+                  >
+                    ×
+                  </button>
                 </div>
               )}
-            </div>
 
-            {/* Footer del modal */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-700 bg-gray-800/50">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors"
-                disabled={loading}
-              >
-                Cancelar
-              </button>
-              
-              <Button
-                onClick={handleGenerate}
-                disabled={loading || (activeTab === 'image' && !selectedImage) || (activeTab === 'text' && !textPrompt.trim())}
-                className={`${
-                  activeTab === 'image' 
-                    ? 'bg-purple-600 hover:bg-purple-700' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                } text-white shadow-lg`}
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin mr-2">🌀</span>
-                    {activeTab === 'image' ? 'Analizando...' : 'Generando...'}
-                  </span>
-                ) : (
-                  <>
-                    {activeTab === 'image' ? '🖼️ Analizar Imagen' : '💭 Generar Diseño'}
-                  </>
-                )}
-              </Button>
+              {/* Información adicional */}
+              <div className="text-sm text-gray-300 bg-purple-500/10 border border-purple-500/20 p-3 rounded-lg">
+                <p className="font-medium mb-1 text-purple-400">💡 Consejos para mejores resultados:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>Sube mockups, sketches o capturas de pantalla</li>
+                  <li>Las imágenes con texto claro funcionan mejor</li>
+                  <li>Se analizará la estructura visual y el texto presente</li>
+                </ul>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Campo de texto para el prompt */}
+              <div>
+                <label htmlFor="prompt" className="block text-sm font-medium text-gray-300 mb-2">
+                  Describe la pantalla que quieres crear:
+                </label>
+                <textarea
+                  id="prompt"
+                  value={textPrompt}
+                  onChange={(e) => setTextPrompt(e.target.value)}
+                  placeholder="Ej: Pantalla de perfil de usuario con avatar, información básica, formulario de edición y botones de acción..."
+                  className="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-white placeholder-gray-400"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Información adicional */}
+              <div className="text-sm text-gray-300 bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
+                <p className="font-medium mb-1 text-blue-400">💡 Consejos para mejores resultados:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>Sé específico con los elementos que necesitas</li>
+                  <li>Menciona el tipo de pantalla (login, perfil, lista, etc.)</li>
+                  <li>Incluye detalles sobre colores o estilos si los tienes</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </>
+
+        {/* Footer del modal */}
+        <div className="flex items-center justify-between p-6 border-t border-gray-700 bg-gray-800/50">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors"
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+
+          <Button
+            onClick={handleGenerate}
+            disabled={loading || (activeTab === 'image' && !selectedImage) || (activeTab === 'text' && !textPrompt.trim())}
+            className={`${activeTab === 'image'
+              ? 'bg-purple-600 hover:bg-purple-700'
+              : 'bg-blue-600 hover:bg-blue-700'
+              } text-white shadow-lg`}
+          >
+            {loading ? (
+              <span className="flex items-center">
+                <span className="animate-spin mr-2">🌀</span>
+                {activeTab === 'image' ? 'Analizando...' : 'Generando...'}
+              </span>
+            ) : (
+              <>
+                {activeTab === 'image' ? '🖼️ Analizar Imagen' : '💭 Generar Diseño'}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

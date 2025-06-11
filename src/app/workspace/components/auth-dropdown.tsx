@@ -12,24 +12,31 @@ import {
   Check,
   Plus,
   Copy,
+  Sparkles,
+  Download,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthModal from "@/components/auth-modal";
 import { useAuth } from "@/hooks/use-auth";
 import SaveProjectModal from "./save-project-modal";
-import { Button } from "@/components/ui/button";
 import LoadProjectModal from "./load-project-modal";
 import { wsClient } from "@/lib/websocket";
 import { useRouter } from "next/navigation";
+import { generateAndDownloadZip } from "@/lib/export-flutter";
+import IaDesignModal from "./ia/ia-example";
 
 /* ---------- helpers de estilo ---------- */
 const menuItem =
   "flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-800/60 transition-colors";
 
-const inputStyle = "w-full rounded-md bg-zinc-800/60 border border-zinc-700 text-sm text-white px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+interface AuthDropdownProps {
+  // Props necesarias para los nuevos componentes
+  addScreenIA?: (name: string, elements?: any[]) => string;
+  flutterCode?: string;
+}
 
 /* ---------- componente ---------- */
-export default function AuthDropdown() {
+export default function AuthDropdown({ addScreenIA, flutterCode }: AuthDropdownProps) {
   const { user, token, logout } = useAuth();
   const router = useRouter();
   const isLoggedIn = !!token;
@@ -41,6 +48,7 @@ export default function AuthDropdown() {
   const [roomCode, setRoomCode] = useState("");
   const [showSave, setShowSave] = useState(false);
   const [showLoad, setShowLoad] = useState(false);
+  const [showIAModal, setShowIAModal] = useState(false);
 
   // Estados para funcionalidad colaborativa
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
@@ -166,6 +174,27 @@ export default function AuthDropdown() {
     setIsOpen(false);
   };
 
+  const handleExportProject = () => {
+    if (!flutterCode || flutterCode.trim() === '') {
+      alert('Por favor, escribe código Flutter válido antes de exportar.');
+      return;
+    }
+
+    try {
+      // Aquí llamarías a la función de exportación
+      generateAndDownloadZip(flutterCode);
+      alert('✅ Descarga iniciada! Encuentra el ZIP en tu carpeta de descargas');
+      setIsOpen(false);
+    } catch (error: any) {
+      alert('❌ Error al generar el proyecto: ' + error.message);
+    }
+  };
+
+  const handleOpenIAModal = () => {
+    setShowIAModal(true);
+    setIsOpen(false); // Cerrar dropdown
+  };
+
   useEffect(() => {
     if (!isOpen) {
       setJoinError("");
@@ -218,6 +247,44 @@ export default function AuthDropdown() {
               role="menu"
               className="absolute right-0 mt-2 w-80 rounded-xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-md shadow-2xl overflow-hidden z-50"
             >
+              <div className="px-4 py-3 space-y-3 border-b border-zinc-800/60">
+                <h3 className="text-sm font-medium text-zinc-300">
+                  🛠️ Herramientas de diseño
+                </h3>
+
+                {/* Botón IA Design - Estilo integrado */}
+                <div className="w-full">
+                  <button
+                    onClick={handleOpenIAModal}
+                    disabled={!addScreenIA}
+                    className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg"
+                    title="Generar diseño con Inteligencia Artificial"
+                  >
+                    <Sparkles size={16} />
+                    <span>Diseñar con IA</span>
+                    <div className="ml-auto">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Botón Export - Nuevo diseño */}
+                <button
+                  onClick={handleExportProject}
+                  className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-medium transition-all duration-200 transform hover:scale-[1.02] shadow-lg"
+                  title="Exportar proyecto Flutter completo"
+                >
+                  <Download size={16} />
+                  <span>Exportar proyecto</span>
+                  <div className="ml-auto">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
               {!isLoggedIn ? (
                 <>
                   <button
@@ -243,15 +310,6 @@ export default function AuthDropdown() {
                 </>
               ) : (
                 <>
-                  <div className="px-4 py-3 border-b border-zinc-800/60">
-                    <p className="text-sm text-zinc-200">
-                      Sesión iniciada como&nbsp;
-                      <span className="font-medium text-white">
-                        {user?.email}
-                      </span>
-                    </p>
-                  </div>
-
                   {/* --- Acciones de proyecto --- */}
                   {/* <button onClick={() => setShowSave(true)}>
                     <Save size={16} /> Guardar proyecto
@@ -364,7 +422,7 @@ export default function AuthDropdown() {
         </AnimatePresence>
       </div>
 
-      {/* ---------- Modal Auth ---------- */}
+      {/* ---------- Modal ---------- */}
       <AuthModal
         isOpen={showAuthModal}
         initialMode={modalMode}
@@ -372,6 +430,14 @@ export default function AuthDropdown() {
       />
       <SaveProjectModal open={showSave} onClose={() => setShowSave(false)} />
       <LoadProjectModal open={showLoad} onClose={() => setShowLoad(false)} />
+
+      {addScreenIA && (
+        <IaDesignModal
+          isOpen={showIAModal}
+          onClose={() => setShowIAModal(false)}
+          addScreenIA={addScreenIA}
+        />
+      )}
     </>
   );
 }

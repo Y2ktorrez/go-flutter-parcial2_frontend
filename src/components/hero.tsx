@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import AuthModal from "./auth-modal"
+import { useRouter } from "next/navigation"
 
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -83,11 +83,15 @@ export default function Hero() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  const handleTitleClick = () => {
+    router.push('/workspace')
+  }
+
   return (
     <div className="relative h-screen w-full overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full bg-black" />
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
-        <button onClick={() => setShowAuthModal(true)} className="hover:text-gray-300 transition-colors cursor-pointer">
+        <button onClick={() => handleTitleClick()} className="hover:text-gray-300 transition-colors cursor-pointer">
           <motion.h1
             className="mb-6 text-6xl font-bold tracking-tighter sm:text-7xl lg:text-8xl"
             initial={{ opacity: 0, y: 20 }}
@@ -106,7 +110,6 @@ export default function Hero() {
           Flutter Interfaces Generator
         </motion.p>
       </div>
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   )
 }

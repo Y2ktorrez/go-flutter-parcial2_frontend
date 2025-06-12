@@ -12,6 +12,23 @@ interface Example {
   onClose: () => void;
 }
 
+function audioToGenerativePart(file: File): Promise<{ inlineData: { data: string; mimeType: string } }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Data = (reader.result as string).split(',')[1];
+      resolve({
+        inlineData: {
+          data: base64Data,
+          mimeType: file.type
+        }
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // Función para extraer JSON de un string
 function extractJsonFromString(str: string): any {
   try {
@@ -51,19 +68,42 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [textPrompt, setTextPrompt] = useState("");
-  const [activeTab, setActiveTab] = useState<'image' | 'text'>('image');
+  const [activeTab, setActiveTab] = useState<'image' | 'text' | 'audio'>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedAudio, setSelectedAudio] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const clearAll = () => {
     setSelectedImage(null);
+    setSelectedAudio(null);
     setTextPrompt("");
     setActiveTab('image');
+    setIsRecording(false);
+
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
+
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+
+    if (audioInputRef.current) {
+      audioInputRef.current.value = '';
+    }
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
     }
   };
 
@@ -106,11 +146,96 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
     }
   };
 
+  const handleAudioSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validar que sea un archivo de audio
+      if (!file.type.startsWith('audio/')) {
+        alert('Por favor selecciona un archivo de audio válido');
+        return;
+      }
+
+      // Validar tamaño (máximo 25MB - límite de Gemini)
+      if (file.size > 25 * 1024 * 1024) {
+        alert('El archivo de audio es demasiado grande. Máximo 25MB');
+        return;
+      }
+
+      setSelectedAudio(file);
+
+      // Crear URL para reproducir
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+    }
+  };
+
+  const clearAudio = () => {
+    setSelectedAudio(null);
+    setIsRecording(false);
+
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+
+    if (audioInputRef.current) {
+      audioInputRef.current.value = '';
+    }
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+
+        setSelectedAudio(file);
+
+        // Crear URL para reproducir
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+
+        // Detener el stream
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      setMediaRecorder(recorder);
+      recorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error al acceder al micrófono:', error);
+      alert('No se pudo acceder al micrófono. Verifica los permisos.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (activeTab === 'image') {
       await generateWithImageIA();
-    } else {
+    } else if (activeTab === 'text') {
       await generateWithPromptIA();
+    } else if (activeTab === 'audio') {
+      await generateWithAudioIA();
     }
   };
 
@@ -126,7 +251,7 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
       const elements = await analyzeImageAndGenerate(selectedImage);
 
       // Crear pantalla con los elementos generados
-      const screenName = `Pantalla de ${selectedImage.name.split('.')[0]}`;
+      const screenName = `ScreenIamge`;
       addScreenIA(screenName, elements as Omit<DesignElement, 'id'>[]);
 
       // Cerrar modal y limpiar
@@ -148,13 +273,34 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
     setLoading(true);
     try {
       const elements = await fetchIAComponents(textPrompt);
-      addScreenIA("Pantalla generada por IA", elements as Omit<DesignElement, 'id'>[]);
+      addScreenIA("ScreenIA", elements as Omit<DesignElement, 'id'>[]);
 
       // Cerrar modal y limpiar
       handleClose();
     } catch (error) {
       console.error("Error generando diseño:", error);
       alert("Error al generar el diseño. Inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateWithAudioIA = async () => {
+    if (!selectedAudio) {
+      alert('Por favor selecciona o graba un audio primero');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const elements = await analyzeAudioAndGenerate(selectedAudio);
+      const screenName = `ScreenAudio`;
+      addScreenIA(screenName, elements as Omit<DesignElement, 'id'>[]);
+
+      handleClose();
+    } catch (error) {
+      console.error("Error generando diseño desde audio:", error);
+      alert("Error al procesar el audio. Inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -257,6 +403,104 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
       return parseIAResponse(jsonResponse);
     } catch (error: any) {
       console.error(`\n❌ Error en el análisis de imagen: ${error.message}`);
+      console.error("Detalles:", error);
+      throw error;
+    }
+  };
+
+  const analyzeAudioAndGenerate = async (audioFile: File): Promise<any> => {
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_API_KEY_IA ?? "");
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      // Convertir audio a formato requerido
+      const audioPart = await audioToGenerativePart(audioFile);
+
+      const prompt = `
+    Analyze this audio and generate a mobile UI screen based on the spoken description. Convert the audio content into design elements.
+
+    **Analysis Instructions:**
+    1. **Speech Recognition:** Transcribe and understand the spoken requirements
+    2. **UI Interpretation:** Convert spoken descriptions into appropriate UI components
+    3. **Layout Planning:** Create a logical layout based on the described functionality
+    4. **Component Selection:** Choose appropriate components for the described features
+
+    **Critical Rules:**
+    1. **NO NESTING:** All elements MUST be root-level. DO NOT use "children" property at all.
+    2. **Component Types:** ONLY use these ComponentType values: 
+      "button", "textField", "card", "label", 
+      "switch", "checkbox", "radio", "chatInput", "chatMessage", "dropdown", 
+      "inputWithLabel", "switchWithLabel", "radioWithLabel", "checkboxWithLabel", "dynamicTable".
+
+    3. **No IDs:** DO NOT include "id" property (will be auto-generated).
+
+    4. **Required Properties:** 
+      - ALL elements MUST include ALL default properties for their type
+      - For text/input: MUST include fontSize, padding
+      - For buttons: MUST include padding, color, textColor
+
+    5. **Coordinates & Dimensions:**
+      - x, y: Absolute position in pixels (0-360 width, 0-640 height)
+      - width, height: Logical dimensions (match component content)
+      - Minimum spacing: 10px between elements
+
+    6. **Structured Data:**
+      - Use JSON.stringify() for: options, columns, data
+      - Maintain property types: 
+        - color: hex string (#RRGGBB)
+        - size: number (pixels)
+        - padding: number (pixels)
+
+    7. **Output Format:**
+      - Return ONLY pure JSON array
+      - NO explanations, comments or markdown
+      - Ensure valid JSON syntax (double quotes)
+
+    **Response Example (JSON ONLY):**
+    [
+      {
+        "type": "container",
+        "x": 20,
+        "y": 50,
+        "width": 320,
+        "height": 500,
+        "properties": {
+          "color": "#F5F5F5",
+          "padding": 16,
+          "borderRadius": 8
+        }
+      },
+      {
+        "type": "textField",
+        "x": 40,
+        "y": 180,
+        "width": 240,
+        "height": 60,
+        "properties": {
+          "label": "Full Name",
+          "hint": "Enter your name",
+          "padding": 12,
+          "fontSize": 16,
+          "borderColor": "#CCCCCC"
+        }
+      }
+    ]
+
+    Analyze the audio and create the appropriate mobile UI elements based on what is described.
+    `;
+
+      console.log("Enviando audio a Gemini para análisis...");
+
+      const result = await model.generateContent([prompt, audioPart]);
+      const response = await result.response;
+      const text = response.text();
+
+      console.log("Respuesta de Gemini:", text);
+
+      const jsonResponse = extractJsonFromString(text);
+      return parseIAResponse(jsonResponse);
+    } catch (error: any) {
+      console.error(`\n❌ Error en el análisis de audio: ${error.message}`);
       console.error("Detalles:", error);
       throw error;
     }
@@ -419,6 +663,16 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
           >
             💭 Desde Texto
           </button>
+          <button
+            onClick={() => setActiveTab('audio')}
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${activeTab === 'audio'
+              ? 'border-b-2 border-green-500 text-green-400 bg-green-500/10'
+              : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+              }`}
+            disabled={loading}
+          >
+            🎤 Desde Audio
+          </button>
         </div>
 
         {/* Contenido del modal */}
@@ -481,7 +735,7 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
                 </ul>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'text' ? (
             <div className="space-y-4">
               {/* Campo de texto para el prompt */}
               <div>
@@ -508,6 +762,106 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
                 </ul>
               </div>
             </div>
+          ) : (
+            /* NUEVA SECCIÓN DE AUDIO */
+            <div className="space-y-4">
+              {/* Sección de grabación de audio */}
+              <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 bg-gray-800/50">
+                <div className="text-center">
+                  <div className="mb-4">
+                    <svg className={`mx-auto h-12 w-12 ${isRecording ? 'text-red-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+
+                  {/* Controles de grabación */}
+                  <div className="flex justify-center space-x-4 mb-4">
+                    {!isRecording ? (
+                      <button
+                        onClick={startRecording}
+                        disabled={loading}
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                      >
+                        🎤 Comenzar Grabación
+                      </button>
+                    ) : (
+                      <button
+                        onClick={stopRecording}
+                        disabled={loading}
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors animate-pulse"
+                      >
+                        ⏹️ Detener Grabación
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="text-sm text-gray-400 mb-4">O</div>
+
+                  {/* Carga de archivo de audio */}
+                  <div className="flex text-sm text-gray-300">
+                    <label htmlFor="audio-upload" className="relative cursor-pointer bg-gray-800 rounded-md font-medium text-green-400 hover:text-green-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-green-500 focus-within:ring-offset-gray-900 px-2 py-1">
+                      <span>Sube un archivo de audio</span>
+                      <input
+                        ref={audioInputRef}
+                        id="audio-upload"
+                        name="audio-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="audio/*"
+                        onChange={handleAudioSelect}
+                        disabled={loading || isRecording}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">MP3, WAV, M4A, WebM hasta 25MB</p>
+                </div>
+              </div>
+
+              {/* Reproductor de audio */}
+              {audioUrl && (
+                <div className="bg-gray-800 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-300">
+                      {selectedAudio?.name || 'Grabación de audio'}
+                    </span>
+                    <button
+                      onClick={clearAudio}
+                      className="text-red-400 hover:text-red-300 text-sm"
+                      disabled={loading}
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </div>
+                  <audio
+                    controls
+                    src={audioUrl}
+                    className="w-full"
+                    style={{
+                      backgroundColor: '#374151',
+                      borderRadius: '0.375rem'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Estado de grabación */}
+              {isRecording && (
+                <div className="text-center text-red-400 animate-pulse">
+                  🔴 Grabando... Habla ahora y describe la pantalla que quieres crear
+                </div>
+              )}
+
+              {/* Información adicional */}
+              <div className="text-sm text-gray-300 bg-green-500/10 border border-green-500/20 p-3 rounded-lg">
+                <p className="font-medium mb-1 text-green-400">💡 Consejos para mejores resultados:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>Habla claro y describe detalladamente la pantalla</li>
+                  <li>Menciona todos los elementos que necesitas (botones, campos, etc.)</li>
+                  <li>Incluye información sobre colores, disposición y funcionalidad</li>
+                  <li>Evita ruidos de fondo durante la grabación</li>
+                </ul>
+              </div>
+            </div>
           )}
         </div>
 
@@ -523,20 +877,31 @@ export default function IaDesignModal({ isOpen, onClose, addScreenIA }: Example)
 
           <Button
             onClick={handleGenerate}
-            disabled={loading || (activeTab === 'image' && !selectedImage) || (activeTab === 'text' && !textPrompt.trim())}
+            disabled={
+              loading ||
+              (activeTab === 'image' && !selectedImage) ||
+              (activeTab === 'text' && !textPrompt.trim()) ||
+              (activeTab === 'audio' && !selectedAudio)
+            }
             className={`${activeTab === 'image'
               ? 'bg-purple-600 hover:bg-purple-700'
-              : 'bg-blue-600 hover:bg-blue-700'
+              : activeTab === 'text'
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-green-600 hover:bg-green-700'
               } text-white shadow-lg`}
           >
             {loading ? (
               <span className="flex items-center">
                 <span className="animate-spin mr-2">🌀</span>
-                {activeTab === 'image' ? 'Analizando...' : 'Generando...'}
+                {activeTab === 'image' ? 'Analizando...' :
+                  activeTab === 'text' ? 'Generando...' :
+                    'Procesando...'}
               </span>
             ) : (
               <>
-                {activeTab === 'image' ? '🖼️ Analizar Imagen' : '💭 Generar Diseño'}
+                {activeTab === 'image' ? '🖼️ Analizar Imagen' :
+                  activeTab === 'text' ? '💭 Generar Diseño' :
+                    '🎤 Procesar Audio'}
               </>
             )}
           </Button>

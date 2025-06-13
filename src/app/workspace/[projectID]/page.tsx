@@ -1,3 +1,5 @@
+"use client";
+
 import DesignerWebsocket from "./components/designer-websocket";
 
 export default function WebsocketPage () {

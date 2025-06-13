@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GO FLUTTER",
   description: "Flutter Interfaces Generator",
-  themeColor: "#000000",
+  metadataBase: new URL('http://localhost:3000'),
   openGraph: {
     title: "GO FLUTTER",
     description: "Flutter Interfaces Generator",

@@ -1,3 +1,5 @@
+"use client"
+
 import Hero from "../components/hero"
 import Portfolio from "../components/portfolio"
 import Footer from "../components/footer"

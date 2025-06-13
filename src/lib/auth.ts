@@ -20,7 +20,7 @@ export interface AuthResponse {
 
 /** Usa env var para que funcione en dev y producción */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /**
  * Wrapper de fetch – T = tipo de respuesta, B = tipo del cuerpo

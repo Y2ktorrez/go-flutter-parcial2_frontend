@@ -1,5 +1,5 @@
 import { DesignElement } from "@/lib/types";
-import { Button } from "../ui/button";
+import {Button} from "@/components/ui/button";
 import { useState, useRef } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Sparkles } from "lucide-react";
